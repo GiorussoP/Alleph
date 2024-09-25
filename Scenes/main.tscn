@@ -1,0 +1,43 @@
+[gd_scene load_steps=6 format=3 uid="uid://d0ywdpawbo0rk"]
+
+[ext_resource type="PackedScene" uid="uid://b3xlrgbd7ru5t" path="res://Scenes/floor.tscn" id="1_5nfce"]
+[ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="2_jp2m8"]
+[ext_resource type="Script" path="res://Scripts/gui.cs" id="3_2ldwu"]
+
+[sub_resource type="Environment" id="Environment_dfe4v"]
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_n6vo6"]
+
+[node name="main" type="Node"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.54342, -0.539973, -0.642747, -0.494648, -0.824593, 0.274534, -0.678246, 0.168746, -0.715197, -216.25, 167.182, -12.0225)
+layers = 0
+shadow_enabled = true
+shadow_bias = 0.81
+shadow_transmittance_bias = 1.0
+directional_shadow_split_1 = 0.016
+directional_shadow_split_2 = 0.064
+directional_shadow_split_3 = 0.256
+directional_shadow_max_distance = 1000.0
+directional_shadow_pancake_size = 1024.0
+
+[node name="Player" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_jp2m8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -108.491, -1.02035, 4.93765)
+collision_mask = 6
+input_ray_pickable = false
+gravity_scale = 0.0
+camera = NodePath("../Camera3D")
+
+[node name="GUI" type="Node" parent="."]
+script = ExtResource("3_2ldwu")
+
+[node name="Floor" parent="." instance=ExtResource("1_5nfce")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.834108, -6.8926, 2.8036)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dfe4v")
+camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -107.745, 37.8628, 11.6913)
