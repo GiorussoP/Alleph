@@ -33,7 +33,7 @@ camera = NodePath("../Camera3D")
 script = ExtResource("3_2ldwu")
 
 [node name="Floor" parent="." instance=ExtResource("1_5nfce")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.834108, -6.8926, 2.8036)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.428, -108.871, 62.5147)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_dfe4v")
