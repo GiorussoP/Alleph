@@ -2,16 +2,21 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "dotnet",
-            "task": "build",
-            "problemMatcher": [
-                "$msCompile"
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "label": "build"
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
         }
     ]
 }

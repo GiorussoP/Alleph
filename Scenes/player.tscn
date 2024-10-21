@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/player.cs" id="1_5jhtv"]
 
-[sub_resource type="SphereMesh" id="SphereMesh_67f6t"]
+[sub_resource type="BoxMesh" id="BoxMesh_k7s2h"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fbjq3"]
 albedo_color = Color(1, 0, 0, 1)
@@ -10,10 +10,11 @@ albedo_color = Color(1, 0, 0, 1)
 [sub_resource type="SphereShape3D" id="SphereShape3D_0r1nl"]
 
 [node name="Player" type="RigidBody3D"]
+lock_rotation = true
 script = ExtResource("1_5jhtv")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("SphereMesh_67f6t")
+mesh = SubResource("BoxMesh_k7s2h")
 surface_material_override/0 = SubResource("StandardMaterial3D_fbjq3")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

@@ -1,18 +1,15 @@
 using Godot;
 using System;
 
-public partial class gui : Node
-{
+public partial class gui : Node {
 
 	private bool fullscreen = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
 	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
-	{
+	public override void _Ready(){
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(double delta)
-	{
+	public override void _Process(double delta){
 	}
 
 	public override void _Input(InputEvent @event){
