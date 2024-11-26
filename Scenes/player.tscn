@@ -20,6 +20,5 @@ gi_mode = 2
 pixel_size = 0.025
 shaded = true
 double_sided = false
-no_depth_test = true
 alpha_cut = 2
 texture_filter = 0

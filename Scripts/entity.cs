@@ -15,7 +15,7 @@ public partial class Entity : RigidBody3D{
     }
 
     public override void _Ready() {
-		
+		GravityScale = 0;
 	}
 
     protected Vector3 findClosestGround(float radius, short precision = 4){

@@ -10,7 +10,8 @@ public partial class player : SpriteEntity {
 	
 	[Export] float speed = 20;
 	[Export] float look_speed = 0.03f;
-	[Export] float max_cam_dist = 3;
+	[Export] float max_cam_dist = 20;
+	[Export] float min_cam_dist = 2;
 	[Export] float jump_speed = 50;
 
 
@@ -33,6 +34,11 @@ public partial class player : SpriteEntity {
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		base._Ready();
+		addAnimationSet("walk",0,0,8);
+		addAnimationSet("run",1,0,8);
+		addAnimationSet("jump",2,0,7,7,false);
+
+		playAnimation("walk");
 		pauseAnimation(2);
 	}
 
@@ -48,7 +54,7 @@ public partial class player : SpriteEntity {
 
 
 		//Camera position
-		if(!jumping) {
+		if(true) {
 			camera_target = utilities.vector3Lerp(camera_target,Position + 0.2f*camera_distance*up_direction,0.5f);
 		}
 		else {
@@ -58,8 +64,8 @@ public partial class player : SpriteEntity {
 
 	if(debugging){
 		DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
-		DebugDraw3D.DrawLine(Position,Position + 5.0f* up_direction,Color.Color8(100,255,100));
-		DebugDraw3D.DrawArrow(Position,Position + 5.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
+		DebugDraw3D.DrawLine(Position,Position + 3.0f* up_direction,Color.Color8(100,255,100));
+		DebugDraw3D.DrawArrow(Position,Position + 3.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
 	}
 		
 
@@ -80,22 +86,35 @@ public partial class player : SpriteEntity {
 		ly = Input.GetActionRawStrength("look_up") 		- 	Input.GetActionRawStrength("look_down");
 		lx = Input.GetActionRawStrength("look_right") 	- 	Input.GetActionRawStrength("look_left");
 
+		float zy = Input.GetActionRawStrength("zoom_forward") - 	Input.GetActionRawStrength("zoom_backward");
+		camera_distance += zy;
+		camera_distance = Math.Min(max_cam_dist,Math.Max(min_cam_dist,camera_distance));
+
 		if(Mathf.Abs(mx) > 0.2 || Mathf.Abs(my) > 0.2 || Mathf.Abs(mz) > 0.2){
-			front_direction = findMoveVector(mx, my);
+			Vector3 mv = findMoveVector(mx, my);
+			if(mv != Vector3.Zero) front_direction = mv;
 			LinearVelocity = (front_direction + mz*up_direction) * speed;
 			//Adjust model orientation
-			playAnimation("walk");
+			if(!jumping) playAnimation("run");
 		}
 		else {
 			LinearVelocity = Vector3.Zero;
-			pauseAnimation(2);
+			
+			if(!jumping){
+				playAnimation("walk");
+				pauseAnimation(2);
+			}
 		}
 
 		if(Input.IsActionJustPressed("move_jump")){
 			if(!jumping){
 				LinearVelocity += jump_speed * up_direction;
-				//jumping = true;
+				playAnimation("jump");
+				jumping = true;
 			}
+		}
+		if(Input.IsActionJustPressed("move_crouch")){
+			jumping = false;
 		}
 
 		if(Input.IsActionJustPressed("debug_action_1")) {
@@ -116,13 +135,16 @@ public partial class player : SpriteEntity {
 
         var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized());
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+		float new_dist = camera_distance;
+		
 		if (result.Count > 0){
 			GD.Print("Hit at point: ", result["position"]);
-			camera_distance = ((Vector3) result["position"] - Position).Length() - camera.Scale.X;
+			new_dist = ((Vector3) result["position"] - Position).Length() - camera.Scale.X;
+
 		}
-		else {
-			camera_distance = max_cam_dist;
-		}
+
+		camera_distance = new_dist < camera_distance ? new_dist : camera_distance;
 
 		
 		base._PhysicsProcess(delta);

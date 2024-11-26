@@ -11,4 +11,11 @@ public partial class utilities {
 							Mathf.Lerp((float)v1.Y,(float)v2.Y,factor),
 							Mathf.Lerp((float)v1.Z,(float)v2.Z,factor));
 	}
+
+	 public static Vector3 vector3Max(Vector3 v1, Vector3 v2){
+		return (v1.Length() > v2.Length()) ? v1 : v2;
+	}
+	public static Vector3 vector3Min(Vector3 v1, Vector3 v2){
+		return (v1.Length() < v2.Length()) ? v1 : v2;
+	}
 }
