@@ -6,9 +6,8 @@ using System.Linq;
 
 
 
-public partial class player : Entity {
-	[Export] Node3D camera;
-	private Vector3 move_dir;
+public partial class player : SpriteEntity {
+	
 	[Export] float speed = 20;
 	[Export] float look_speed = 0.03f;
 	[Export] float max_cam_dist = 6;
@@ -20,13 +19,15 @@ public partial class player : Entity {
 
 	private float mx,my, mz, lx,ly;
 
-	public player(){
-		move_dir = -Basis.Z;
+	public player() {
+		
+		front_direction = -Basis.Z;
 	}
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
-
+		base._Ready();
+		playAnimation("walk");
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -51,17 +52,14 @@ public partial class player : Entity {
 
 		DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
 		DebugDraw3D.DrawLine(Position,Position + 5.0f* up_direction,Color.Color8(100,255,100));
-		DebugDraw3D.DrawArrow(Position,Position + 5.0f*move_dir,Color.Color8(255,255,0), 0.1f, true);
+		DebugDraw3D.DrawArrow(Position,Position + 5.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
 
 
 
 
-		//LookAt(Position+move_dir,up_direction);
+		base._Process(delta);
 	}
     public override void _Input(InputEvent @event){
-        
-		if (@event is InputEventMouseMotion eventMouseMotion)
-        	GD.Print("Mouse Motion at: ", eventMouseMotion.Position);
 
 		if(Input.IsActionJustPressed("reset"))
 			Position = Vector3.Zero;
@@ -74,12 +72,14 @@ public partial class player : Entity {
 		lx = Input.GetActionRawStrength("look_right") 	- 	Input.GetActionRawStrength("look_left");
 
 		if(Mathf.Abs(mx) > 0.2 || Mathf.Abs(my) > 0.2 || Mathf.Abs(mz) > 0.2){
-			move_dir = findMoveVector(mx, my);
-			LinearVelocity = (move_dir + mz*up_direction) * speed;
+			front_direction = findMoveVector(mx, my);
+			LinearVelocity = (front_direction + mz*up_direction) * speed;
 			//Adjust model orientation
+			playAnimation("walk");
 		}
 		else {
 			LinearVelocity = Vector3.Zero;
+			pauseAnimation();
 		}
 
 		if(Input.IsActionJustPressed("move_jump")){
@@ -114,5 +114,8 @@ public partial class player : Entity {
 		else {
 			camera_distance = max_cam_dist;
 		}
+
+		
+		base._PhysicsProcess(delta);
     }
 }

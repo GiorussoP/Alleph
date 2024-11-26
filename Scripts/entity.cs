@@ -4,15 +4,19 @@ using System;
 
 
 public partial class Entity : RigidBody3D{
-
     protected Vector3 closest_ground;
     protected Vector3 up_direction;
-
+    protected Vector3 front_direction;
 
     public Entity(){
         closest_ground = Position;
+        front_direction = Vector3.Forward;
         up_direction = Vector3.Up;
     }
+
+    public override void _Ready() {
+		
+	}
 
     protected Vector3 findClosestGround(float radius, short precision = 4){
         var spaceState = GetWorld3D().DirectSpaceState;
