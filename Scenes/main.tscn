@@ -23,7 +23,7 @@ directional_shadow_max_distance = 1000.0
 directional_shadow_pancake_size = 1024.0
 
 [node name="Player" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_jp2m8")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -108.491, -1.02035, 4.93765)
+transform = Transform3D(0.968353, 0.249586, 0, -0.249586, 0.968353, 0, 0, 0, 1, -108.491, -86.188, 4.93765)
 collision_mask = 6
 input_ray_pickable = false
 gravity_scale = 0.0

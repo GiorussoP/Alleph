@@ -10,8 +10,14 @@ public partial class player : SpriteEntity {
 	
 	[Export] float speed = 20;
 	[Export] float look_speed = 0.03f;
-	[Export] float max_cam_dist = 6;
+	[Export] float max_cam_dist = 3;
 	[Export] float jump_speed = 50;
+
+
+	/// <summary>
+	/// /DEBUG
+	bool debugging = false;
+	/// </summary>
 
 	private bool jumping = false;
 	private float camera_distance;
@@ -27,7 +33,7 @@ public partial class player : SpriteEntity {
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		base._Ready();
-		playAnimation("walk");
+		pauseAnimation(2);
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -43,16 +49,19 @@ public partial class player : SpriteEntity {
 
 		//Camera position
 		if(!jumping) {
-			camera_target = utilities.vector3Lerp(camera_target,Position + 0.5f*camera_distance*up_direction,0.5f);
+			camera_target = utilities.vector3Lerp(camera_target,Position + 0.2f*camera_distance*up_direction,0.5f);
 		}
 		else {
 			camera_target += (Position-camera_target).Slide(up_direction);
 		}
 		camera.Position = utilities.vector3Lerp(camera.Position, camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
 
+	if(debugging){
 		DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
 		DebugDraw3D.DrawLine(Position,Position + 5.0f* up_direction,Color.Color8(100,255,100));
 		DebugDraw3D.DrawArrow(Position,Position + 5.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
+	}
+		
 
 
 
@@ -79,19 +88,19 @@ public partial class player : SpriteEntity {
 		}
 		else {
 			LinearVelocity = Vector3.Zero;
-			pauseAnimation();
+			pauseAnimation(2);
 		}
 
 		if(Input.IsActionJustPressed("move_jump")){
 			if(!jumping){
 				LinearVelocity += jump_speed * up_direction;
-				jumping = true;
+				//jumping = true;
 			}
 		}
 
 		if(Input.IsActionJustPressed("debug_action_1")) {
-			jumping = !jumping;
-			GD.Print(findClosestGround(50));
+			findClosestGround(50);
+			debugging = !debugging;
 		}
     }
 

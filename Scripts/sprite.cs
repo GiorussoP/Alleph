@@ -27,9 +27,12 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.SpriteFrames = new SpriteFrames();
 
 
-        addAnimationSet("walk",0,0,2);
+        addAnimationSet("walk",0,0,8);
 
         animatedSprite3D.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+        animatedSprite3D.CastShadow = Godot.GeometryInstance3D.ShadowCastingSetting.DoubleSided;
+        animatedSprite3D.Shaded = true;
+        animatedSprite3D.DoubleSided = false;
     }
     public override void _Process(double delta){
 
@@ -92,8 +95,10 @@ public abstract partial class SpriteEntity : Entity {
 
         current_animation = name;
         paused = false;
+        if(reset) animatedSprite3D.SetFrameAndProgress(0,0);
     }
-    protected void pauseAnimation(){
+    protected void pauseAnimation(int frame = -1){
+        if(frame >= 0) animatedSprite3D.SetFrameAndProgress(frame,0);
         paused = true;
     }
     
