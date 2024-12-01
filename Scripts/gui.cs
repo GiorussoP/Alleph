@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-public partial class gui : Node {
+public partial class Gui : Node {
 
 	private bool fullscreen = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
 	// Called when the node enters the scene tree for the first time.

@@ -15,6 +15,8 @@ public abstract partial class SpriteEntity : Entity {
 
     [Export] protected Node3D camera;
 
+    [Export] private Texture2D sprite_sheet;
+
     private int frame_width;
     private int frame_height;
 
@@ -27,9 +29,9 @@ public abstract partial class SpriteEntity : Entity {
     private string current_animation = "none";
     bool paused = false;
 
-    private string[] directions = {"n","ne","e","se","s"};
+    private Color original_modulate;
 
-    [Export] private Texture2D sprite_sheet;
+    private string[] directions = {"n","ne","e","se","s"};
 
     public AnimatedSprite3D animatedSprite3D;
 
@@ -51,10 +53,15 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.Shaded = true;
         animatedSprite3D.DoubleSided = false;
         animatedSprite3D.NoDepthTest = false;
+
+        original_modulate = animatedSprite3D.Modulate;
     }
     public override void _Process(double delta){
 
+        // Turn to camera
         animatedSprite3D.LookAt(Position-camera.Basis.Z.Slide(up_direction),up_direction);
+
+        // Animation Finished
         if(animatedSprite3D.Frame == end_frame && animatedSprite3D.FrameProgress > 0.5){
             GD.Print("Animation ",current_animation," ended");
             pauseAnimation();
@@ -67,7 +74,6 @@ public abstract partial class SpriteEntity : Entity {
                 }
                 else playing_queue = false;
             }
-  
         }
     }
 
@@ -96,7 +102,8 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.SetFrameAndProgress(frame,progress);
         animatedSprite3D.Scale = scale_vector;
 
-        if(paused)  animatedSprite3D.Pause();
+        if(paused) 
+            animatedSprite3D.Pause();
 
         base._PhysicsProcess(delta);
     }
@@ -152,6 +159,10 @@ public abstract partial class SpriteEntity : Entity {
             }
         }
         else end_frame = to_frame;
+    }
+
+    public void resetSpriteColor(){
+        animatedSprite3D.Modulate = original_modulate;
     }
     protected void pauseAnimation(int frame = -1){
         if(frame >= 0)

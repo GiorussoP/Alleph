@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3 uid="uid://d0ywdpawbo0rk"]
+[gd_scene load_steps=7 format=3 uid="uid://d0ywdpawbo0rk"]
 
 [ext_resource type="PackedScene" uid="uid://b3xlrgbd7ru5t" path="res://Scenes/floor.tscn" id="1_5nfce"]
 [ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="2_jp2m8"]
-[ext_resource type="Script" path="res://Scripts/gui.cs" id="3_2ldwu"]
+[ext_resource type="Script" path="res://Scripts/Gui.cs" id="3_2ldwu"]
+[ext_resource type="PackedScene" uid="uid://cj42mmr6cj66f" path="res://Scenes/jelleg.tscn" id="4_ijjj0"]
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
 background_mode = 2
@@ -43,5 +44,9 @@ camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -107.745, 37.8628, 11.6913)
 
 [node name="Player" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_jp2m8")]
-transform = Transform3D(0.983141, 0.17878, 0.0383499, -0.182791, 0.966159, 0.181998, -0.00451452, -0.18594, 0.982551, 156.03, -98.7739, 52.9957)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 168.997, -99.6, 75.0147)
+camera = NodePath("../Camera3D")
+
+[node name="Jelleg" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("4_ijjj0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 163.192, -92.6147, 62.1984)
 camera = NodePath("../Camera3D")

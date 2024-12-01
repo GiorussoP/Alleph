@@ -8,56 +8,21 @@ public partial class Entity : CharacterBody3D{
     protected Vector3 closest_ground;
 
     private PhysicsDirectBodyState3D last_state;
-    protected bool on_ground = false;
+    protected bool on_ground = true;
 
     protected Vector3 up_direction;
 
     protected float local_y_speed = 0;
     protected Vector3 front_direction;
 
-    public Entity(){
+    public Entity() {
         closest_ground = this.GetPosition();
         front_direction = Vector3.Forward;
         up_direction = Vector3.Up;
     }
 
     public override void _Ready() {
-        Connect("body_entered", new Callable(this,nameof(OnBodyEntered)));
-        Connect("body_exited", new Callable(this,nameof(OnBodyExited)));
 	}
-
-    private void OnBodyEntered(Node body) {
-		GD.Print(this,"entered: ",body);
-	}
-
-    private void OnBodyExited(Node body) {
-		GD.Print(this,"exited: ",body);
-	}
-
-    private void checkGroundCollision(){
-        on_ground = false;
-        if(local_y_speed < 0){
-
-            var from = Position;
-            var to = Position +up_direction*local_y_speed;
-
-
-            var query = PhysicsRayQueryParameters3D.Create(from,to);
-            DebugDraw3D.DrawLine(from,to,Color.Color8(255,0,255));
-
-            var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
-
-
-            
-
-            if (result.Count > 0 && ((Vector3)result["normal"]).AngleTo(up_direction) < Math.PI/4){
-
-                on_ground = true;
-                local_y_speed = 0;
-            }
-        }
-    }
-
     public override void _PhysicsProcess(double delta) {
 
         local_y_speed -= Environment.gravity_acceleration * (float)delta;
@@ -71,7 +36,7 @@ public partial class Entity : CharacterBody3D{
             for(int i = 0; i < GetSlideCollisionCount(); ++i){
                 var collision = GetSlideCollision(i);
 
-                DebugDraw3D.DrawLine(Position,collision.GetPosition(),Color.Color8(0,255,255));
+                //DebugDraw3D.DrawLine(Position,collision.GetPosition(),Color.Color8(0,255,255));
 
 
                 if(!on_ground && collision.GetNormal().AngleTo(up_direction) < MathF.PI/4){
@@ -111,7 +76,7 @@ public partial class Entity : CharacterBody3D{
                         if(dir.Dot(search_direction) < 0)
                             continue;
 
-                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist);
+                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,utilities.floor_object_maskit );
                         result = spaceState.IntersectRay(query);
 
                         if(result.Count > 0){

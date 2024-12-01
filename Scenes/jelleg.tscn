@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3 uid="uid://cj42mmr6cj66f"]
+
+[ext_resource type="Script" path="res://Scripts/Jelleg.cs" id="1_mkd4i"]
+[ext_resource type="Texture2D" uid="uid://oex16r1e041r" path="res://Sprites/jelleg.png" id="2_jifv6"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_0r1nl"]
+radius = 0.381959
+
+[node name="Jelleg" type="CharacterBody3D"]
+collision_layer = 8
+collision_mask = 15
+input_ray_pickable = false
+motion_mode = 1
+wall_min_slide_angle = 0.0
+script = ExtResource("1_mkd4i")
+health = 10
+damage = 1
+sprite_sheet = ExtResource("2_jifv6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_0r1nl")
+
+[node name="AnimatedSprite3D" type="AnimatedSprite3D" parent="."]
+gi_mode = 2
+pixel_size = 0.025
+shaded = true
+double_sided = false
+alpha_cut = 2
+texture_filter = 0

@@ -6,7 +6,7 @@ using System.Linq;
 
 
 
-public partial class player : SpriteEntity {
+public partial class Player : SpriteEntity {
 	
 	[Export] float speed = 4;
 	[Export] float sprint_boost = 4;
@@ -31,9 +31,9 @@ public partial class player : SpriteEntity {
 	private float camera_distance, desired_camera_distance;
 	private Vector3 camera_target;
 
-	private float mx,my, mz, lx,ly, zy;
+	private float mx,my, lx,ly, zy;
 
-	public player() {
+	public Player() {
 		
 		front_direction = -Basis.Z;
 
@@ -58,29 +58,40 @@ public partial class player : SpriteEntity {
 		// POWER
 		if(power){
 			power_timer+=(float)delta;
+
+
+			// PowerTick
 			if(power_timer > power_delay){
 				if(power_gauge > 0){
 					findClosestGround(50.0f);
 				}
-				else
-					up_direction = Vector3.Up;
+				else{
+					on_ground = false;
+					enablePower(false);
+				}
 				power_timer = 0;
-				
 			}
-			var c = Color.Color8(0,0,255);
+
+			// Gauge
 			if(power_gauge > 0 && up_direction.AngleTo(Vector3.Up) > Math.PI/4){
+				// using
 				power_gauge -=(float)delta;
 				power_gauge = Math.Max(power_gauge,0);
-				c = Color.Color8(127,127,255);
+				drawPowerGauge(Color.Color8(0,255,255));
 			}
 			else{
-				
+				// not using
+				drawPowerGauge(Color.Color8(0,0,255));
 			}
-			drawPowerGauge(c);
+			
 		}
-		else up_direction = Vector3.Up;
+		else{
+			enablePower(false);
+		}
+		
 
-		if(!power && power_gauge < power_gauge_limit){
+		// Gauge recharge
+		if(on_ground && power_gauge < power_gauge_limit && up_direction.AngleTo(Vector3.Up) < Math.PI/4){
 			power_gauge += (float)delta;
 			power_gauge = Math.Min(power_gauge,power_gauge_limit);
 			drawPowerGauge(Color.Color8(0,0,255));
@@ -127,6 +138,23 @@ public partial class player : SpriteEntity {
 		DebugDraw3D.DrawLine(begin,end,c);
 	}
 
+	private void enablePower(bool value = true){
+		if(value == true){
+			power = true;
+
+			animatedSprite3D.Modulate = Color.Color8(0,255,255,170);
+			animatedSprite3D.TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic;
+			animatedSprite3D.Shaded = false;
+		}
+		else{
+			// Criar método para desabilitar poder
+			up_direction = Vector3.Up;
+			power = false;
+			animatedSprite3D.Shaded = true;
+			animatedSprite3D.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+			resetSpriteColor();
+		}
+	}
     public override void _Input(InputEvent @event){
 
 		if(Input.IsActionPressed("reset")) {
@@ -136,8 +164,6 @@ public partial class player : SpriteEntity {
 		}
 		my = Input.GetActionRawStrength("move_forward") - 	Input.GetActionRawStrength("move_backward");
 		mx = Input.GetActionRawStrength("move_right") 	- 	Input.GetActionRawStrength("move_left");
-		mz = Input.GetActionRawStrength("move_jump") 	- 	Input.GetActionRawStrength("move_crouch");
-		
 		lx = Input.GetActionRawStrength("look_right") 	- 	Input.GetActionRawStrength("look_left");
 
 		if(Input.IsActionPressed("modifier")) {
@@ -149,10 +175,15 @@ public partial class player : SpriteEntity {
 			zy = 0;
 		};
 
-		if(Input.GetActionRawStrength("power") > 0)
+		if(Input.GetActionRawStrength("power") > 0){
+			enablePower();
 			power = true;
-		else
+		}
+		else {
+			enablePower(false);
 			power = false;
+		}
+	
 
 		if((Mathf.Abs(mx) > 0.2 || Mathf.Abs(my) > 0.2)){
 			move_vector = findMoveVector();
@@ -183,9 +214,6 @@ public partial class player : SpriteEntity {
 				playAnimation("jump",0,2);
 			}
 		}
-		if(Input.IsActionJustPressed("move_crouch")){
-		}
-
 		if(Input.IsActionJustPressed("debug_action_1")) {
 			findClosestGround(50);
 			debugging = !debugging;
@@ -226,14 +254,13 @@ public partial class player : SpriteEntity {
 
 		// CAMERA
 
-        var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized());
+        var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized(),utilities.floor_object_mask);
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
 
 		float new_dist = desired_camera_distance;
 		
 		if (result.Count > 0){
 			new_dist = ((Vector3) result["position"] - Position).Length() - camera.Scale.X;
-
 		}
 
 		camera_distance = new_dist < desired_camera_distance ? new_dist : desired_camera_distance;
