@@ -1,11 +1,28 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+
+
 
 public abstract partial class SpriteEntity : Entity {
+
+
+    private struct AnimationExecution{
+        public string name;
+        public int frame_start;
+        public int frame_end;
+    };
+
     [Export] protected Node3D camera;
 
     private int frame_width;
     private int frame_height;
+
+    private Queue<AnimationExecution> animation_queue = new Queue<AnimationExecution>();
+
+    private bool playing_queue = false;
+
+    private int end_frame = -1;
     
     private string current_animation = "none";
     bool paused = false;
@@ -34,13 +51,24 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.Shaded = true;
         animatedSprite3D.DoubleSided = false;
         animatedSprite3D.NoDepthTest = false;
-
-
-        
     }
     public override void _Process(double delta){
 
         animatedSprite3D.LookAt(Position-camera.Basis.Z.Slide(up_direction),up_direction);
+        if(animatedSprite3D.Frame == end_frame && animatedSprite3D.FrameProgress > 0.5){
+            GD.Print("Animation ",current_animation," ended");
+            pauseAnimation();
+
+            if(playing_queue){
+                if(animation_queue.Count !=0){
+                    AnimationExecution animation = animation_queue.Dequeue();
+                    playAnimation(animation.name,animation.frame_start,animation.frame_end);
+                    GD.Print("DEQUEUED ",animation.name);
+                }
+                else playing_queue = false;
+            }
+  
+        }
     }
 
     public override void _PhysicsProcess(double delta) {
@@ -76,10 +104,9 @@ public abstract partial class SpriteEntity : Entity {
     // Adds an animation for all 5 directions.
     protected void addAnimationSet(string name, int row = 0,int collumn = 0, int n_frames = 8, int fps = 10,bool repeat = true){
        
-
         for(int j = 0; j < 5; ++j){
 
-            GD.Print("Adding animation "+name+"_"+directions[j]);
+            GD.Print("Adding animation set "+name+"_"+directions[j]);
             animatedSprite3D.SpriteFrames.AddAnimation(name+"_"+directions[j]);
             animatedSprite3D.SpriteFrames.SetAnimationSpeed(name+"_"+directions[j],fps);
             animatedSprite3D.SpriteFrames.SetAnimationLoop(name+"_"+directions[j],repeat);
@@ -95,16 +122,40 @@ public abstract partial class SpriteEntity : Entity {
             }
         }
     }
-    
-    protected void playAnimation(string name, bool reset = false){
+
+    protected void queueAnimation(string name, int from_frame = -1,int to_frame = -1){
+        AnimationExecution animation = new AnimationExecution();
+        animation.name = name;
+        animation.frame_start = from_frame;
+        animation.frame_end = to_frame;
+        animation_queue.Enqueue(animation);
+    }
+
+    protected void playQueuedAnimations(){
+        playing_queue = true;
+    }
+ 
+    protected void playAnimation(string name, int from_frame = -1,int to_frame = -1){
 
         current_animation = name;
         paused = false;
-        if(reset) animatedSprite3D.SetFrameAndProgress(0,0);
+
+        if(from_frame >= 0)
+            animatedSprite3D.SetFrameAndProgress(from_frame,0);
+
+        if(to_frame < 0){
+            if(animatedSprite3D.SpriteFrames.GetAnimationLoop(name+"_"+directions[0]) == true){
+                end_frame = -1;
+            }
+            else{
+                end_frame = animatedSprite3D.SpriteFrames.GetFrameCount(name+"_"+directions[0])-1;
+            }
+        }
+        else end_frame = to_frame;
     }
     protected void pauseAnimation(int frame = -1){
-        if(frame >= 0) animatedSprite3D.SetFrameAndProgress(frame,0);
+        if(frame >= 0)
+            animatedSprite3D.SetFrameAndProgress(frame,0);
         paused = true;
     }
-    
 }

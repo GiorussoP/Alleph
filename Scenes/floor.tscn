@@ -1,14 +1,39 @@
-[gd_scene load_steps=5 format=3 uid="uid://b3xlrgbd7ru5t"]
+[gd_scene load_steps=12 format=3 uid="uid://b3xlrgbd7ru5t"]
+
+[ext_resource type="Texture2D" uid="uid://bth3nxk8mneon" path="res://Textures/Stylized_Wood_Floor_001_basecolor.png" id="1_awwtk"]
+[ext_resource type="Texture2D" uid="uid://c8xsj6jlh0fll" path="res://Textures/Stylized_Wood_Floor_001_ambientOcclusion.png" id="2_2goih"]
+[ext_resource type="Texture2D" uid="uid://bc23cywqevw2s" path="res://Textures/Stylized_Wood_Floor_001_metallic.png" id="2_lwhvg"]
+[ext_resource type="Texture2D" uid="uid://cb0qclnpj853c" path="res://Textures/Stylized_Wood_Floor_001_height.png" id="3_14j3w"]
+[ext_resource type="Texture2D" uid="uid://caetn4s4flknl" path="res://Textures/Stylized_Wood_Floor_001_normal.png" id="3_fnu1i"]
+[ext_resource type="Texture2D" uid="uid://q7hi813x2ou1" path="res://Textures/Stylized_Wood_Floor_001_roughness.png" id="4_tgd46"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_oquli"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_sku04"]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_7eelx"]
-size = Vector3(11.9879, 52.8453, 33.8911)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_uu8yb"]
 size = Vector3(800, 10, 800)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wti41"]
+albedo_texture = ExtResource("1_awwtk")
+metallic = 1.0
+metallic_texture = ExtResource("2_lwhvg")
+metallic_texture_channel = 4
+roughness_texture = ExtResource("4_tgd46")
+roughness_texture_channel = 4
+normal_enabled = true
+normal_texture = ExtResource("3_fnu1i")
+ao_enabled = true
+ao_texture = ExtResource("2_2goih")
+ao_texture_channel = 4
+heightmap_scale = 1.0
+heightmap_deep_parallax = true
+heightmap_min_layers = 8
+heightmap_max_layers = 32
+heightmap_texture = ExtResource("3_14j3w")
+
+[sub_resource type="BoxMesh" id="BoxMesh_bn4gq"]
+material = SubResource("StandardMaterial3D_wti41")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_q7t2v"]
 
 [node name="Floor" type="RigidBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.412384, -1.81497, 0.90448)
@@ -20,14 +45,38 @@ freeze = true
 transform = Transform3D(800, 0, 0, 0, 10, 0, 0, 0, 800, 0, 0, 0)
 mesh = SubResource("BoxMesh_oquli")
 
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_uu8yb")
+
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="."]
-transform = Transform3D(49.0783, 0, 0, 0, 216.343, 0, 0, 0, 139.393, -78.1771, 64.9551, -96.5228)
-mesh = SubResource("BoxMesh_sku04")
-skeleton = NodePath("../../DirectionalLight3D")
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 10, 0)
+mesh = SubResource("BoxMesh_bn4gq")
 
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="."]
-transform = Transform3D(4.11759, 0, 0, 0, 4.11759, 0, 0, 0, 4.11759, -78.091, 64.2996, -96.475)
-shape = SubResource("BoxShape3D_7eelx")
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 10, 0)
+shape = SubResource("BoxShape3D_q7t2v")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource("BoxShape3D_uu8yb")
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="."]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 10, 19.8515)
+mesh = SubResource("BoxMesh_bn4gq")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="."]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 10, 19.8515)
+shape = SubResource("BoxShape3D_q7t2v")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="."]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 3.23885, 26.1045, 14.5707)
+mesh = SubResource("BoxMesh_bn4gq")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="."]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 3.23885, 26.1045, 14.5707)
+shape = SubResource("BoxShape3D_q7t2v")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="."]
+transform = Transform3D(7.07107, 0, 7.07107, 0, 10, 0, -7.07107, 0, 7.07107, 17.2738, 23.3384, 0.486021)
+mesh = SubResource("BoxMesh_bn4gq")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="."]
+transform = Transform3D(7.07107, 0, 7.07107, 0, 10, 0, -7.07107, 0, 7.07107, 17.2738, 23.3384, 0.486021)
+shape = SubResource("BoxShape3D_q7t2v")

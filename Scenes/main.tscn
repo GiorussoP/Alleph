@@ -5,13 +5,20 @@
 [ext_resource type="Script" path="res://Scripts/gui.cs" id="3_2ldwu"]
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
+background_mode = 2
+ambient_light_source = 3
+ambient_light_color = Color(0.529412, 0.807843, 0.921569, 1)
+glow_intensity = 0.0
+fog_enabled = true
+fog_light_color = Color(0.529412, 0.807843, 0.921569, 1)
+adjustment_brightness = 0.3
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_n6vo6"]
 
 [node name="main" type="Node"]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.54342, -0.539973, -0.642747, -0.494648, -0.824593, 0.274534, -0.678246, 0.168746, -0.715197, -216.25, 167.182, -12.0225)
+transform = Transform3D(0.535179, -0.551842, -0.639573, -0.615036, -0.773553, 0.152797, -0.579063, 0.311587, -0.753392, -216.25, 167.182, -12.0225)
 layers = 0
 shadow_enabled = true
 shadow_bias = 0.81
@@ -36,6 +43,5 @@ camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -107.745, 37.8628, 11.6913)
 
 [node name="Player" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("2_jp2m8")]
-collision_mask = 14
-gravity_scale = 0.0
+transform = Transform3D(0.983141, 0.17878, 0.0383499, -0.182791, 0.966159, 0.181998, -0.00451452, -0.18594, 0.982551, 156.03, -98.7739, 52.9957)
 camera = NodePath("../Camera3D")

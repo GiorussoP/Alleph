@@ -5,8 +5,11 @@
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_0r1nl"]
 
-[node name="Player" type="RigidBody3D"]
-lock_rotation = true
+[node name="Player" type="CharacterBody3D"]
+collision_mask = 14
+input_ray_pickable = false
+motion_mode = 1
+wall_min_slide_angle = 0.0
 script = ExtResource("1_5jhtv")
 sprite_sheet = ExtResource("2_6k0fh")
 
