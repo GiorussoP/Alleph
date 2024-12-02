@@ -76,7 +76,7 @@ public partial class Entity : CharacterBody3D{
                         if(dir.Dot(search_direction) < 0)
                             continue;
 
-                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,utilities.floor_object_maskit );
+                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,utilities.floor_object_mask);
                         result = spaceState.IntersectRay(query);
 
                         if(result.Count > 0){

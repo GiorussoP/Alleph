@@ -12,6 +12,7 @@ input_ray_pickable = false
 motion_mode = 1
 wall_min_slide_angle = 0.0
 script = ExtResource("1_5jhtv")
+min_cam_dist = 0.0
 sprite_sheet = ExtResource("2_6k0fh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

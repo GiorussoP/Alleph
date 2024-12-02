@@ -1,10 +1,32 @@
-[gd_scene load_steps=4 format=3 uid="uid://cj42mmr6cj66f"]
+[gd_scene load_steps=7 format=3 uid="uid://cj42mmr6cj66f"]
 
 [ext_resource type="Script" path="res://Scripts/Jelleg.cs" id="1_mkd4i"]
 [ext_resource type="Texture2D" uid="uid://oex16r1e041r" path="res://Sprites/jelleg.png" id="2_jifv6"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_0r1nl"]
-radius = 0.381959
+radius = 0.296955
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qky3i"]
+atlas = ExtResource("2_jifv6")
+region = Rect2(256, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nklrp"]
+atlas = ExtResource("2_jifv6")
+region = Rect2(288, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_e3hfq"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qky3i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nklrp")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
 
 [node name="Jelleg" type="CharacterBody3D"]
 collision_layer = 8
@@ -18,12 +40,16 @@ damage = 1
 sprite_sheet = ExtResource("2_jifv6")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.104591, 0)
 shape = SubResource("SphereShape3D_0r1nl")
 
 [node name="AnimatedSprite3D" type="AnimatedSprite3D" parent="."]
 gi_mode = 2
+visibility_range_begin = 0.5
+visibility_range_fade_mode = 1
 pixel_size = 0.025
 shaded = true
 double_sided = false
 alpha_cut = 2
 texture_filter = 0
+sprite_frames = SubResource("SpriteFrames_e3hfq")

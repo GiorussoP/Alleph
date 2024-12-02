@@ -13,7 +13,7 @@ public abstract partial class SpriteEntity : Entity {
         public int frame_end;
     };
 
-    [Export] protected Node3D camera;
+    protected Node3D camera;
 
     [Export] private Texture2D sprite_sheet;
 
@@ -42,7 +42,7 @@ public abstract partial class SpriteEntity : Entity {
 
     public override void _Ready() {
         base._Ready();
-        //camera = GetViewport().GetCamera3D();
+        camera = GetViewport().GetCamera3D();
         animatedSprite3D = GetNode<AnimatedSprite3D>("AnimatedSprite3D");
         animatedSprite3D.SpriteFrames = new SpriteFrames();
 
@@ -52,11 +52,33 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.GIMode = AnimatedSprite3D.GIModeEnum.Dynamic;
         animatedSprite3D.Shaded = true;
         animatedSprite3D.DoubleSided = false;
-        animatedSprite3D.NoDepthTest = false;
+        animatedSprite3D.NoDepthTest = false;   
+        animatedSprite3D.Transparent = true;
+        animatedSprite3D.VisibilityRangeEnd = 50.0f;
 
         original_modulate = animatedSprite3D.Modulate;
+
     }
+
+
+    public override void _Input(InputEvent @event){
+        base._Input(@event);  
+    }
+
+    protected void setTransparent(bool value = true){
+        if(value){
+            animatedSprite3D.CastShadow = GeometryInstance3D.ShadowCastingSetting.ShadowsOnly;
+            animatedSprite3D.DoubleSided = true;
+        }
+        else{
+            animatedSprite3D.CastShadow = GeometryInstance3D.ShadowCastingSetting.DoubleSided;
+            animatedSprite3D.DoubleSided = false;
+        }
+    }
+
     public override void _Process(double delta){
+
+       
 
         // Turn to camera
         animatedSprite3D.LookAt(Position-camera.Basis.Z.Slide(up_direction),up_direction);

@@ -12,7 +12,7 @@ public partial class Player : SpriteEntity {
 	[Export] float sprint_boost = 4;
 	[Export] float look_speed = 0.03f;
 	[Export] float max_cam_dist = 20;
-	[Export] float min_cam_dist = 3;
+	[Export] float min_cam_dist = 0.1f;
 	[Export] float jump_speed = 5;
 
 	[Export] float power_gauge = 5,power_gauge_limit = 5;
@@ -37,7 +37,7 @@ public partial class Player : SpriteEntity {
 		
 		front_direction = -Basis.Z;
 
-		desired_camera_distance = min_cam_dist/2;
+		desired_camera_distance = min_cam_dist;
 		camera_distance = desired_camera_distance;
 	}
 
@@ -67,7 +67,7 @@ public partial class Player : SpriteEntity {
 				}
 				else{
 					on_ground = false;
-					enablePower(false);
+					setPower(false);
 				}
 				power_timer = 0;
 			}
@@ -86,7 +86,7 @@ public partial class Player : SpriteEntity {
 			
 		}
 		else{
-			enablePower(false);
+			setPower(false);
 		}
 		
 
@@ -113,7 +113,7 @@ public partial class Player : SpriteEntity {
 
 		// Camera position
 		if(true) {
-			camera_target = utilities.vector3Lerp(camera_target,Position + 0.2f*camera_distance*up_direction,0.5f);
+			camera_target = utilities.vector3Lerp(camera_target,Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
 		}
 		else {
 			camera_target += (Position-camera_target).Slide(up_direction);
@@ -130,7 +130,17 @@ public partial class Player : SpriteEntity {
 		base._Process(delta);
 	}
 
-
+		private void setPower(bool value = true){
+		if(value == true){
+			power = true;
+			animatedSprite3D.Modulate = Color.Color8(0,255,255,170);
+		}
+		else{
+			up_direction = Vector3.Up;
+			power = false;
+			resetSpriteColor();
+		}
+	}
 	private void drawPowerGauge(Color c){
 		Vector3 begin = Position +0.5f*up_direction + 0.5f*camera.Basis.X;
 		Vector3 end = begin + (power_gauge/power_gauge_limit)*0.5f*camera.Basis.Y;
@@ -138,23 +148,6 @@ public partial class Player : SpriteEntity {
 		DebugDraw3D.DrawLine(begin,end,c);
 	}
 
-	private void enablePower(bool value = true){
-		if(value == true){
-			power = true;
-
-			animatedSprite3D.Modulate = Color.Color8(0,255,255,170);
-			animatedSprite3D.TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic;
-			animatedSprite3D.Shaded = false;
-		}
-		else{
-			// Criar método para desabilitar poder
-			up_direction = Vector3.Up;
-			power = false;
-			animatedSprite3D.Shaded = true;
-			animatedSprite3D.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
-			resetSpriteColor();
-		}
-	}
     public override void _Input(InputEvent @event){
 
 		if(Input.IsActionPressed("reset")) {
@@ -165,23 +158,26 @@ public partial class Player : SpriteEntity {
 		my = Input.GetActionRawStrength("move_forward") - 	Input.GetActionRawStrength("move_backward");
 		mx = Input.GetActionRawStrength("move_right") 	- 	Input.GetActionRawStrength("move_left");
 		lx = Input.GetActionRawStrength("look_right") 	- 	Input.GetActionRawStrength("look_left");
+		ly = Input.GetActionRawStrength("look_up") - Input.GetActionRawStrength("look_down");
 
-		if(Input.IsActionPressed("modifier")) {
-			zy = Input.GetActionRawStrength("look_down") - Input.GetActionRawStrength("look_up");
+		if(Input.IsActionPressed("modifier") && Mathf.Abs(ly) > 0.2) {
+			zy = -ly;
 			ly = 0;
+
+			if(camera_distance == 0)
+				setTransparent();
+			else
+				setTransparent(false);
 		}
 		else {
-			ly = Input.GetActionRawStrength("look_up") - Input.GetActionRawStrength("look_down");
 			zy = 0;
 		};
 
 		if(Input.GetActionRawStrength("power") > 0){
-			enablePower();
-			power = true;
+			setPower(true);
 		}
 		else {
-			enablePower(false);
-			power = false;
+			setPower(false);
 		}
 	
 
@@ -205,6 +201,8 @@ public partial class Player : SpriteEntity {
 			}
 		}
 
+		if(camera_distance == 0) front_direction = -camera.Basis.Z.Slide(up_direction);
+
 		if(Input.IsActionPressed("move_jump")){
 			if(!jumping && on_ground){
 				jumping = true;
@@ -222,6 +220,7 @@ public partial class Player : SpriteEntity {
 		if(Input.IsActionPressed("move_sprint")) {
 			sprinting = true;
 		}
+		base._Input(@event);
     }
 
     private Vector3 findMoveVector() {
