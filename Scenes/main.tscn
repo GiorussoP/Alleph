@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://d0ywdpawbo0rk"]
+[gd_scene load_steps=8 format=3 uid="uid://d0ywdpawbo0rk"]
 
 [ext_resource type="PackedScene" uid="uid://b3xlrgbd7ru5t" path="res://Scenes/floor.tscn" id="1_5nfce"]
 [ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="2_jp2m8"]
 [ext_resource type="Script" path="res://Scripts/Gui.cs" id="3_2ldwu"]
 [ext_resource type="PackedScene" uid="uid://cj42mmr6cj66f" path="res://Scenes/jelleg.tscn" id="4_ijjj0"]
+[ext_resource type="PackedScene" uid="uid://bvr7wmtxockjn" path="res://Scenes/terrain.tscn" id="5_ruohh"]
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
 background_mode = 2
@@ -34,7 +35,7 @@ directional_shadow_pancake_size = 1024.0
 script = ExtResource("3_2ldwu")
 
 [node name="Floor" parent="." instance=ExtResource("1_5nfce")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.428, -108.871, 62.5147)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.428, -114.379, 62.5147)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_dfe4v")
@@ -57,3 +58,6 @@ transform = Transform3D(0.518221, 0, -0.855247, 0, 1, 0, 0.855247, 0, 0.518221, 
 
 [node name="Jelleg4" parent="." instance=ExtResource("4_ijjj0")]
 transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 165.893, -91.9257, 65.3331)
+
+[node name="Terrain" parent="." instance=ExtResource("5_ruohh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 184.191, -84.0002, 36.088)

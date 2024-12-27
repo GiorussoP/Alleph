@@ -37,7 +37,7 @@ public partial class Player : SpriteEntity {
 		
 		front_direction = -Basis.Z;
 
-		desired_camera_distance = min_cam_dist;
+		desired_camera_distance = max_cam_dist/5;
 		camera_distance = desired_camera_distance;
 	}
 
@@ -105,7 +105,7 @@ public partial class Player : SpriteEntity {
 			camera.Rotate(-up_direction,lx*look_speed);
 			camera.Rotate(camera.Transform.Basis.X,ly*look_speed);
 		}
-		camera.LookAt(camera.Position-camera.Basis.Z,utilities.vector3Lerp(camera.Basis.Y,up_direction.Slide(camera.Basis.Z),0.1f));
+		camera.LookAt(camera.Position-camera.Basis.Z,Utilities.vector3Lerp(camera.Basis.Y,up_direction.Slide(camera.Basis.Z),0.1f));
 
 		// Camera zoom
 		desired_camera_distance += zy;
@@ -113,12 +113,12 @@ public partial class Player : SpriteEntity {
 
 		// Camera position
 		if(true) {
-			camera_target = utilities.vector3Lerp(camera_target,Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
+			camera_target = Utilities.vector3Lerp(camera_target,Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
 		}
 		else {
 			camera_target += (Position-camera_target).Slide(up_direction);
 		}
-		camera.Position = utilities.vector3Lerp(camera.Position, camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
+		camera.Position = Utilities.vector3Lerp(camera.Position, camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
 
 		if(debugging){
 			DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
@@ -163,11 +163,6 @@ public partial class Player : SpriteEntity {
 		if(Input.IsActionPressed("modifier") && Mathf.Abs(ly) > 0.2) {
 			zy = -ly;
 			ly = 0;
-
-			if(camera_distance == 0)
-				setTransparent();
-			else
-				setTransparent(false);
 		}
 		else {
 			zy = 0;
@@ -201,7 +196,13 @@ public partial class Player : SpriteEntity {
 			}
 		}
 
-		if(camera_distance == 0) front_direction = -camera.Basis.Z.Slide(up_direction);
+		if(desired_camera_distance == 0){
+			front_direction = -camera.Basis.Z.Slide(up_direction);
+			setTransparent();
+		}
+		else{
+			setTransparent(false);
+		}
 
 		if(Input.IsActionPressed("move_jump")){
 			if(!jumping && on_ground){
@@ -253,7 +254,7 @@ public partial class Player : SpriteEntity {
 
 		// CAMERA
 
-        var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized(),utilities.floor_object_mask);
+        var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized(),Utilities.floor_object_mask);
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
 
 		float new_dist = desired_camera_distance;

@@ -141,7 +141,7 @@ power={
 [layer_names]
 
 3d_physics/layer_1="Player"
-3d_physics/layer_2="Obstacle"
+3d_physics/layer_2="Object"
 3d_physics/layer_3="Floor"
 3d_physics/layer_4="Entity"
 3d_physics/layer_5="Raycast"

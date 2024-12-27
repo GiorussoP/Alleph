@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvr7wmtxockjn"]
+
+[ext_resource type="Script" path="res://Scripts/Terrain.cs" id="1_rqx17"]
+
+[node name="StaticBody3D" type="StaticBody3D"]
+script = ExtResource("1_rqx17")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]

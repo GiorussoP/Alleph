@@ -3,9 +3,8 @@ using System;
 using System.Reflection;
 
 
-
 public partial class Entity : CharacterBody3D{
-    protected Vector3 closest_ground;
+    protected Godot.Vector3 closest_ground;
 
     private PhysicsDirectBodyState3D last_state;
     protected bool on_ground = true;
@@ -76,7 +75,7 @@ public partial class Entity : CharacterBody3D{
                         if(dir.Dot(search_direction) < 0)
                             continue;
 
-                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,utilities.floor_object_mask);
+                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,Utilities.floor_object_mask);
                         result = spaceState.IntersectRay(query);
 
                         if(result.Count > 0){

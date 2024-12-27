@@ -5,8 +5,6 @@ using System.Collections.Generic;
 
 
 public abstract partial class SpriteEntity : Entity {
-
-
     private struct AnimationExecution{
         public string name;
         public int frame_start;
