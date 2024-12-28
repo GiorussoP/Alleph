@@ -30,6 +30,7 @@ public abstract partial class SpriteEntity : Entity {
     private Color original_modulate;
 
     private string[] directions = {"n","ne","e","se","s"};
+    protected Vector3 sprite_up;
 
     public AnimatedSprite3D animatedSprite3D;
 
@@ -55,7 +56,7 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.VisibilityRangeEnd = 50.0f;
 
         original_modulate = animatedSprite3D.Modulate;
-
+        sprite_up = up_direction;
     }
 
 
@@ -75,11 +76,11 @@ public abstract partial class SpriteEntity : Entity {
     }
 
     public override void _Process(double delta){
-
+        sprite_up = sprite_up.Lerp(up_direction,0.1f);
        
 
         // Turn to camera
-        animatedSprite3D.LookAt(Position-camera.Basis.Z.Slide(up_direction),up_direction);
+        animatedSprite3D.LookAt(Position-camera.Basis.Z.Slide(sprite_up),sprite_up);
 
         // Animation Finished
         if(animatedSprite3D.Frame == end_frame && animatedSprite3D.FrameProgress > 0.5){
@@ -183,6 +184,7 @@ public abstract partial class SpriteEntity : Entity {
 
     public void resetSpriteColor(){
         animatedSprite3D.Modulate = original_modulate;
+        animatedSprite3D.Shaded = true;
     }
     protected void pauseAnimation(int frame = -1){
         if(frame >= 0)

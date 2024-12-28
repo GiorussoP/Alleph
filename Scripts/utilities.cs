@@ -16,6 +16,9 @@ public static class Utilities {
 		Entity = 8,
 		Raycast = 16
 	}
+	public static float lerp(float firstFloat, float secondFloat, float by) {
+     	return firstFloat * (1 - by) + secondFloat * by;
+	}
 	public const int floor_object_mask = 0b110;
     public static Vector3 vector3Lerp(Vector3 v1, Vector3 v2, float factor){
 		return new Vector3(	Mathf.Lerp((float)v1.X,(float)v2.X,factor),

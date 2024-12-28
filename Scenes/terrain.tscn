@@ -1,10 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://bvr7wmtxockjn"]
+[gd_scene load_steps=7 format=3 uid="uid://bvr7wmtxockjn"]
 
 [ext_resource type="Script" path="res://Scripts/Terrain.cs" id="1_rqx17"]
+[ext_resource type="Texture2D" uid="uid://c80q1saoici87" path="res://Textures/Concrete_019_BaseColor.jpg" id="2_2wnya"]
+[ext_resource type="Texture2D" uid="uid://m4qf6e2al0aq" path="res://Textures/Concrete_019_Height.png" id="3_ocgh4"]
+[ext_resource type="Texture2D" uid="uid://dv0wgd4a0l2im" path="res://Textures/Concrete_019_Roughness.jpg" id="4_6t1vv"]
+[ext_resource type="Texture2D" uid="uid://dt5a1h6rsmo2m" path="res://Textures/Concrete_019_Normal.jpg" id="4_av2iq"]
 
-[node name="StaticBody3D" type="StaticBody3D"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s20sh"]
+albedo_texture = ExtResource("2_2wnya")
+roughness_texture = ExtResource("4_6t1vv")
+roughness_texture_channel = 4
+normal_texture = ExtResource("4_av2iq")
+heightmap_enabled = true
+heightmap_scale = 0.01
+heightmap_texture = ExtResource("3_ocgh4")
+texture_filter = 0
+
+[node name="Terrain" type="StaticBody3D"]
 script = ExtResource("1_rqx17")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+material_override = SubResource("StandardMaterial3D_s20sh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

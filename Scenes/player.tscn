@@ -1,9 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://b4iye78af4ame"]
+[gd_scene load_steps=6 format=3 uid="uid://b4iye78af4ame"]
 
 [ext_resource type="Script" path="res://Scripts/Player.cs" id="1_5jhtv"]
 [ext_resource type="Texture2D" uid="uid://b20wsabugyoxv" path="res://Sprites/emeralda_teste.png" id="2_6k0fh"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_0r1nl"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7drij"]
+atlas = ExtResource("2_6k0fh")
+region = Rect2(1280, 0, 64, 80)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_ufp2g"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7drij")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 9
@@ -25,3 +40,8 @@ shaded = true
 double_sided = false
 alpha_cut = 2
 texture_filter = 0
+sprite_frames = SubResource("SpriteFrames_ufp2g")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(0, 1, 1, 1)
+shadow_enabled = true

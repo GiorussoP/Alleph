@@ -1,18 +1,25 @@
-[gd_scene load_steps=8 format=3 uid="uid://d0ywdpawbo0rk"]
+[gd_scene load_steps=8 format=3 uid="uid://eqpdjehkk0k5"]
 
 [ext_resource type="PackedScene" uid="uid://b3xlrgbd7ru5t" path="res://Scenes/floor.tscn" id="1_5nfce"]
-[ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="2_jp2m8"]
 [ext_resource type="Script" path="res://Scripts/Gui.cs" id="3_2ldwu"]
 [ext_resource type="PackedScene" uid="uid://cj42mmr6cj66f" path="res://Scenes/jelleg.tscn" id="4_ijjj0"]
+[ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="5_lhb0e"]
 [ext_resource type="PackedScene" uid="uid://bvr7wmtxockjn" path="res://Scenes/terrain.tscn" id="5_ruohh"]
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
-background_mode = 2
-ambient_light_source = 3
-ambient_light_color = Color(0.529412, 0.807843, 0.921569, 1)
+background_mode = 1
+background_color = Color(0.0257808, 0.318005, 0.69424, 1)
+ambient_light_color = Color(0.22556, 0.529826, 0.984686, 1)
 glow_intensity = 0.0
+glow_bloom = 0.03
+glow_hdr_scale = 1.0
+glow_hdr_luminance_cap = 65.15
 fog_enabled = true
-fog_light_color = Color(0.529412, 0.807843, 0.921569, 1)
+fog_mode = 1
+fog_light_color = Color(0.281893, 0.553834, 0.980367, 1)
+fog_sun_scatter = 1.0
+fog_density = 0.5
+volumetric_fog_density = 1.0
 adjustment_brightness = 0.3
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_n6vo6"]
@@ -22,6 +29,8 @@ adjustment_brightness = 0.3
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.535179, -0.551842, -0.639573, -0.615036, -0.773553, 0.152797, -0.579063, 0.311587, -0.753392, -216.25, 167.182, -12.0225)
 layers = 0
+light_color = Color(0.790288, 0.734657, 0.971246, 1)
+light_bake_mode = 1
 shadow_enabled = true
 shadow_bias = 0.81
 shadow_transmittance_bias = 1.0
@@ -31,11 +40,8 @@ directional_shadow_split_3 = 0.256
 directional_shadow_max_distance = 1000.0
 directional_shadow_pancake_size = 1024.0
 
-[node name="GUI" type="Node" parent="."]
+[node name="Gui" type="Node" parent="."]
 script = ExtResource("3_2ldwu")
-
-[node name="Floor" parent="." instance=ExtResource("1_5nfce")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.428, -114.379, 62.5147)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_dfe4v")
@@ -44,20 +50,37 @@ camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -107.745, 37.8628, 11.6913)
 
-[node name="Player" parent="." instance=ExtResource("2_jp2m8")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 168.997, -99.6, 75.0147)
-
 [node name="Jelleg" parent="." instance=ExtResource("4_ijjj0")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 163.192, -90.6694, 62.1984)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.72855, 21.3921, -17.177)
 
 [node name="Jelleg2" parent="." instance=ExtResource("4_ijjj0")]
-transform = Transform3D(-0.936703, 0, 0.350126, 0, 1, 0, -0.350126, 0, -0.936703, 163.528, -91.9257, 60.8809)
+transform = Transform3D(-0.936703, 0, 0.350126, 0, 1, 0, -0.350126, 0, -0.936703, -5.58946, 21.8813, -5.40763)
 
 [node name="Jelleg3" parent="." instance=ExtResource("4_ijjj0")]
-transform = Transform3D(0.518221, 0, -0.855247, 0, 1, 0, 0.855247, 0, 0.518221, 158.941, -91.9257, 62.6157)
+transform = Transform3D(0.518221, 0, -0.855247, 0, 1, 0, 0.855247, 0, 0.518221, 11.1744, 16.2697, -19.1791)
 
 [node name="Jelleg4" parent="." instance=ExtResource("4_ijjj0")]
-transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 165.893, -91.9257, 65.3331)
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 9.25441, 14.381, -17.2188)
+
+[node name="Player" parent="." instance=ExtResource("5_lhb0e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.34864, 9.07043, -11.2947)
 
 [node name="Terrain" parent="." instance=ExtResource("5_ruohh")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 184.191, -84.0002, 36.088)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128, -256, -128)
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -128, 0)
+light_color = Color(0.916809, 0.601884, 0.465824, 1)
+light_energy = 16.0
+light_indirect_energy = 4.0
+light_size = 1.0
+light_specular = 1.0
+shadow_enabled = true
+distance_fade_enabled = true
+distance_fade_begin = 4000.0
+distance_fade_length = 50.0
+omni_range = 512.0
+omni_attenuation = 0.5
+
+[node name="Floor" parent="." instance=ExtResource("1_5nfce")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.568364, -8.59469, -12.4212)

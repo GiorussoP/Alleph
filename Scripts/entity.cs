@@ -16,7 +16,7 @@ public partial class Entity : CharacterBody3D{
 
     public Entity() {
         closest_ground = this.GetPosition();
-        front_direction = Vector3.Forward;
+        front_direction = Transform.Basis.Z;
         up_direction = Vector3.Up;
     }
 

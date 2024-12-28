@@ -1,9 +1,17 @@
 using Godot;
 using System;
-
+using System.Drawing;
+using System.Threading.Tasks;
 public partial class Terrain : StaticBody3D
 {
+	
+	private  SurfaceTool st = new SurfaceTool();
 
+	private FastNoiseLite noise;
+	[Export] private int SIZE = 256;
+	[Export] private float SCALE = 0.1f;
+
+	private Vector3 center;
 	private static readonly Vector3I[] AXIS = {
 		Vector3I.Right,
 		Vector3I.Up,
@@ -54,20 +62,31 @@ public partial class Terrain : StaticBody3D
 		new Vector3I[]{new Vector3I(0,1,0),new Vector3I(0,1,1)},
 	};
 
+	private void generateNoiseTexture() { 
+		noise = new FastNoiseLite(); 
+		noise.SetSeed((int)GD.Randi());
+		noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
+		noise.SetFrequency(0.02f);
 
-	private  SurfaceTool st = new SurfaceTool();
-	private Vector3I dimensions = new Vector3I(20,20,20);
+		GD.Print("Generated Noise Texture");
+	}
+
+
 	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
+	public override async void _Ready()
 	{
+		
+
 		var mesh_instance = GetNode<MeshInstance3D>("MeshInstance3D");
 		var collision_shape = GetNode<CollisionShape3D>("CollisionShape3D");
+		center = 0.5f * new Vector3(SIZE,SIZE,SIZE);
 
 		st.Begin(Mesh.PrimitiveType.Triangles);
 		st.SetColor(Colors.Blue);
 		st.SetSmoothGroup(0);
 
-		generateMesh();
+		await Task.Run(() => generateNoiseTexture());
+		await Task.Run(() => generateMesh());
 
 		var mesh = st.Commit();
 		mesh_instance.Mesh = mesh;
@@ -82,25 +101,33 @@ public partial class Terrain : StaticBody3D
 		CollisionMask = 	((uint)Utilities.collision_layers.Player) & 
 							((uint)Utilities.collision_layers.Object) & 
 							((uint)Utilities.collision_layers.Entity);
+
+		
+
+		GD.Print("Finished Generating Terrain");
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta) {
+		DebugDraw3D.DrawBoxAb(Position,Position + new Vector3(SIZE,SIZE,SIZE),Vector3.Up,Godot.Color.Color8(255,255,0));
 	}
 
 	private float getSampleValue(Vector3 index){
-		return index.DistanceTo(Vector3.Zero)-19.0f;
+		float radius = (SIZE-5)/2;
+		float dist = index.DistanceTo(center);
+		return (dist < (radius))? noise.GetNoise3Dv(index): dist - radius; //index.DistanceTo(Vector3.Zero)-19.0f;
 	}
 
 	private void generateMesh(){
 
-		for(int x = -20; x < dimensions.X; ++x){
-			for(int y = -20; y < dimensions.Y; ++y){
-				for(int z = -20; z < dimensions.Z; ++z){
+		for(int x = 0; x < SIZE; ++x){
+			for(int y = 0; y < SIZE; ++y){
+				for(int z = 0; z < SIZE; ++z){
 					createMeshQuad(new Vector3I(x,y,z));
 				}
 			}
 		}
+		GD.Print("Generated Mesh");
 	}
 	private void createMeshQuad(Vector3I pos){
 		for (uint i = 0; i < 3; ++i){

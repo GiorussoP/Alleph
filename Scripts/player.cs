@@ -15,7 +15,9 @@ public partial class Player : SpriteEntity {
 	[Export] float min_cam_dist = 0.1f;
 	[Export] float jump_speed = 5;
 
-	[Export] float power_gauge = 5,power_gauge_limit = 5;
+	[Export] float power_gauge,power_gauge_limit = 10;
+
+	private OmniLight3D light;
 
 	/// <summary>
 	/// /DEBUG
@@ -39,11 +41,16 @@ public partial class Player : SpriteEntity {
 
 		desired_camera_distance = max_cam_dist/5;
 		camera_distance = desired_camera_distance;
+		power_gauge = power_gauge_limit;
+		Visible = true;
 	}
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		base._Ready();
+
+		light = GetNode<OmniLight3D>("OmniLight3D");
+
 		addAnimationSet("walk",0,0,8);
 		addAnimationSet("run",1,0,8);
 		addAnimationSet("jump",2,0,7,10,false);
@@ -83,10 +90,10 @@ public partial class Player : SpriteEntity {
 				// not using
 				drawPowerGauge(Color.Color8(0,0,255));
 			}
-			
 		}
 		else{
 			setPower(false);
+			
 		}
 		
 
@@ -97,7 +104,7 @@ public partial class Player : SpriteEntity {
 			drawPowerGauge(Color.Color8(0,0,255));
 		}
 
-		GD.Print("Power: ",power_gauge);
+		//GD.Print("Power: ",power_gauge);
 
 
 		// Camera Angle
@@ -105,7 +112,7 @@ public partial class Player : SpriteEntity {
 			camera.Rotate(-up_direction,lx*look_speed);
 			camera.Rotate(camera.Transform.Basis.X,ly*look_speed);
 		}
-		camera.LookAt(camera.Position-camera.Basis.Z,Utilities.vector3Lerp(camera.Basis.Y,up_direction.Slide(camera.Basis.Z),0.1f));
+		camera.LookAt(camera.Position-camera.Basis.Z,camera.Basis.Y.Lerp(sprite_up.Slide(camera.Basis.Z),0.1f));
 
 		// Camera zoom
 		desired_camera_distance += zy;
@@ -116,7 +123,7 @@ public partial class Player : SpriteEntity {
 			camera_target = Utilities.vector3Lerp(camera_target,Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
 		}
 		else {
-			camera_target += (Position-camera_target).Slide(up_direction);
+			//camera_target += (Position-camera_target).Slide(up_direction);
 		}
 		camera.Position = Utilities.vector3Lerp(camera.Position, camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
 
@@ -130,16 +137,18 @@ public partial class Player : SpriteEntity {
 		base._Process(delta);
 	}
 
-		private void setPower(bool value = true){
+	private void setPower(bool value = true){
 		if(value == true){
 			power = true;
 			animatedSprite3D.Modulate = Color.Color8(0,255,255,170);
+			animatedSprite3D.Shaded = false;
 		}
 		else{
 			up_direction = Vector3.Up;
 			power = false;
 			resetSpriteColor();
 		}
+		light.Visible = value;
 	}
 	private void drawPowerGauge(Color c){
 		Vector3 begin = Position +0.5f*up_direction + 0.5f*camera.Basis.X;
@@ -151,7 +160,7 @@ public partial class Player : SpriteEntity {
     public override void _Input(InputEvent @event){
 
 		if(Input.IsActionPressed("reset")) {
-			Position = closest_ground;
+			Position = Vector3.Zero;
 			Velocity = Vector3.Zero;
 			local_y_speed = 0;
 		}
@@ -168,7 +177,7 @@ public partial class Player : SpriteEntity {
 			zy = 0;
 		};
 
-		if(Input.GetActionRawStrength("power") > 0){
+		if(power_gauge > 0 && Input.GetActionRawStrength("power") > 0){
 			setPower(true);
 		}
 		else {
@@ -234,7 +243,7 @@ public partial class Player : SpriteEntity {
 		float sp = sprinting? speed + sprint_boost : speed;
 		Velocity = move_vector * sp;
 
-		if(!on_ground && !falling&&local_y_speed <0){
+		if(!on_ground && !falling&&local_y_speed <-1){
 			playAnimation("jump",2,4);
 			falling = true;
 		}
@@ -260,7 +269,7 @@ public partial class Player : SpriteEntity {
 		float new_dist = desired_camera_distance;
 		
 		if (result.Count > 0){
-			new_dist = ((Vector3) result["position"] - Position).Length() - camera.Scale.X;
+			new_dist = ((Vector3) result["position"] - Position).Length() - 2.0f;
 		}
 
 		camera_distance = new_dist < desired_camera_distance ? new_dist : desired_camera_distance;
