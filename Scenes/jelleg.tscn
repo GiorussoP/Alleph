@@ -35,6 +35,7 @@ input_ray_pickable = false
 motion_mode = 1
 wall_min_slide_angle = 0.0
 script = ExtResource("1_mkd4i")
+test = null
 health = 10
 damage = 1
 sprite_sheet = ExtResource("2_jifv6")

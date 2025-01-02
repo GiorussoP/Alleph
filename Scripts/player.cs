@@ -14,6 +14,7 @@ public partial class Player : SpriteEntity {
 	[Export] float max_cam_dist = 20;
 	[Export] float min_cam_dist = 0.1f;
 	[Export] float jump_speed = 5;
+	[Export] Vector3I home = new Vector3I(0,3,0);
 
 	[Export] float power_gauge,power_gauge_limit = 10;
 
@@ -35,19 +36,14 @@ public partial class Player : SpriteEntity {
 
 	private float mx,my, lx,ly, zy;
 
-	public Player() {
-		
-		front_direction = -Basis.Z;
-
-		desired_camera_distance = max_cam_dist/5;
-		camera_distance = desired_camera_distance;
-		power_gauge = power_gauge_limit;
-		Visible = true;
-	}
-
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
 		base._Ready();
+
+		desired_camera_distance = (max_cam_dist+min_cam_dist)/2;
+		camera_distance = desired_camera_distance;
+		power_gauge = power_gauge_limit;
+		Visible = true;
 
 		light = GetNode<OmniLight3D>("OmniLight3D");
 
@@ -80,7 +76,7 @@ public partial class Player : SpriteEntity {
 			}
 
 			// Gauge
-			if(power_gauge > 0 && up_direction.AngleTo(Vector3.Up) > Math.PI/4){
+			if(power_gauge > 0 && up_direction.AngleTo(Position) > Math.PI/4){
 				// using
 				power_gauge -=(float)delta;
 				power_gauge = Math.Max(power_gauge,0);
@@ -98,7 +94,7 @@ public partial class Player : SpriteEntity {
 		
 
 		// Gauge recharge
-		if(on_ground && power_gauge < power_gauge_limit && up_direction.AngleTo(Vector3.Up) < Math.PI/4){
+		if(!falling && power_gauge < power_gauge_limit && up_direction.AngleTo(Position) < Math.PI/4){
 			power_gauge += (float)delta;
 			power_gauge = Math.Min(power_gauge,power_gauge_limit);
 			drawPowerGauge(Color.Color8(0,0,255));
@@ -132,6 +128,7 @@ public partial class Player : SpriteEntity {
 			DebugDraw3D.DrawLine(Position,Position + 3.0f* up_direction,Color.Color8(100,255,100));
 			DebugDraw3D.DrawSphere(Position,0.5f,Color.Color8(100,100,100));
 			DebugDraw3D.DrawArrow(Position,Position + 3.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
+			//GD.Print(desired_camera_distance, camera_distance,camera);
 		}
 
 		base._Process(delta);
@@ -144,7 +141,7 @@ public partial class Player : SpriteEntity {
 			animatedSprite3D.Shaded = false;
 		}
 		else{
-			up_direction = Vector3.Up;
+			up_direction = Position.Normalized();
 			power = false;
 			resetSpriteColor();
 		}
@@ -160,7 +157,7 @@ public partial class Player : SpriteEntity {
     public override void _Input(InputEvent @event){
 
 		if(Input.IsActionPressed("reset")) {
-			Position = Vector3.Zero;
+			Position = home;
 			Velocity = Vector3.Zero;
 			local_y_speed = 0;
 		}
@@ -214,7 +211,7 @@ public partial class Player : SpriteEntity {
 		}
 
 		if(Input.IsActionPressed("move_jump")){
-			if(!jumping && on_ground){
+			if(!jumping && !falling){
 				jumping = true;
 				on_ground = false;
 				local_y_speed = jump_speed;
@@ -243,7 +240,7 @@ public partial class Player : SpriteEntity {
 		float sp = sprinting? speed + sprint_boost : speed;
 		Velocity = move_vector * sp;
 
-		if(!on_ground && !falling&&local_y_speed <-1){
+		if(!on_ground && !falling&&local_y_speed <-3){
 			playAnimation("jump",2,4);
 			falling = true;
 		}
@@ -262,6 +259,8 @@ public partial class Player : SpriteEntity {
 		
 
 		// CAMERA
+
+		
 
         var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized(),Utilities.floor_object_mask);
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);

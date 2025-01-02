@@ -9,7 +9,7 @@ public partial class Entity : CharacterBody3D{
     private PhysicsDirectBodyState3D last_state;
     protected bool on_ground = true;
 
-    protected Vector3 up_direction;
+    protected Vector3 up_direction = Vector3.Up;
 
     protected float local_y_speed = 0;
     protected Vector3 front_direction;
@@ -23,7 +23,6 @@ public partial class Entity : CharacterBody3D{
     public override void _Ready() {
 	}
     public override void _PhysicsProcess(double delta) {
-
         local_y_speed -= Environment.gravity_acceleration * (float)delta;
         if(local_y_speed< -Environment.terminal_speed)
             local_y_speed = -Environment.terminal_speed;
@@ -45,6 +44,7 @@ public partial class Entity : CharacterBody3D{
                 }
             }
         }
+   
        
 
         //GD.Print("Collisions = ",GetSlideCollisionCount()," LOCAL YSPEED =",local_y_speed," ON_GROUND =",on_ground);

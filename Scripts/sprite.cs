@@ -51,7 +51,7 @@ public abstract partial class SpriteEntity : Entity {
         animatedSprite3D.GIMode = AnimatedSprite3D.GIModeEnum.Dynamic;
         animatedSprite3D.Shaded = true;
         animatedSprite3D.DoubleSided = false;
-        animatedSprite3D.NoDepthTest = false;   
+        animatedSprite3D.NoDepthTest = false;
         animatedSprite3D.Transparent = true;
         animatedSprite3D.VisibilityRangeEnd = 50.0f;
 
@@ -84,14 +84,14 @@ public abstract partial class SpriteEntity : Entity {
 
         // Animation Finished
         if(animatedSprite3D.Frame == end_frame && animatedSprite3D.FrameProgress > 0.5){
-            GD.Print("Animation ",current_animation," ended");
+            //GD.Print("Animation ",current_animation," ended");
             pauseAnimation();
 
             if(playing_queue){
                 if(animation_queue.Count !=0){
                     AnimationExecution animation = animation_queue.Dequeue();
                     playAnimation(animation.name,animation.frame_start,animation.frame_end);
-                    GD.Print("DEQUEUED ",animation.name);
+                    //GD.Print("DEQUEUED ",animation.name);
                 }
                 else playing_queue = false;
             }

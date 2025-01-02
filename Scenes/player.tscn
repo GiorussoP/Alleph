@@ -27,7 +27,15 @@ input_ray_pickable = false
 motion_mode = 1
 wall_min_slide_angle = 0.0
 script = ExtResource("1_5jhtv")
+speed = null
+sprint_boost = null
+look_speed = null
+max_cam_dist = null
 min_cam_dist = 0.0
+jump_speed = null
+home = null
+power_gauge = null
+power_gauge_limit = null
 sprite_sheet = ExtResource("2_6k0fh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -44,4 +52,4 @@ sprite_frames = SubResource("SpriteFrames_ufp2g")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 light_color = Color(0, 1, 1, 1)
-shadow_enabled = true
+omni_range = 1.0

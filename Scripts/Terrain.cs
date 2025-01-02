@@ -5,13 +5,31 @@ using System.Threading.Tasks;
 public partial class Terrain : StaticBody3D
 {
 	
+
+	private static readonly int SIZE = 1024, CHUNK_SIZE = 16, LOAD_DIST = 2;
+
+	private static readonly float 	OUTER_RADIUS = 500,
+									INNER_RADIUS = 100,
+									TRANSITION_OFFSET = 5,
+									TRANSITION_SMOOTHNESS = 0.08f,	// Between 0 and 1
+									NOISE_SCALE = 0.07f;
 	private  SurfaceTool st = new SurfaceTool();
-
 	private FastNoiseLite noise;
-	[Export] private int SIZE = 256;
-	[Export] private float SCALE = 0.1f;
-
 	private Vector3 center;
+	[Export] public Node3D player;
+
+	private struct Chunk {
+		public MeshInstance3D mesh;
+		public CollisionShape3D collision;
+
+		public Chunk(){
+			mesh = new MeshInstance3D();
+			collision = new CollisionShape3D();
+		}
+	}
+	private Octree<Chunk> octree = 	new Octree<Chunk>(
+									new Aabb(-float.MaxValue/2,-float.MaxValue/2,-float.MaxValue/2,
+									new Vector3(float.MaxValue,float.MaxValue,float.MaxValue)));
 	private static readonly Vector3I[] AXIS = {
 		Vector3I.Right,
 		Vector3I.Up,
@@ -43,7 +61,7 @@ public partial class Terrain : StaticBody3D
 		}
 	};
 
-	private static readonly  Vector3I[][] EDGES = new Vector3I[][] {
+	private static readonly Vector3I[][] EDGES = new Vector3I[][] {
 
 		//Edges on min Z axis
 		new Vector3I[]{new Vector3I(0,0,0),new Vector3I(1,0,0)},
@@ -66,45 +84,76 @@ public partial class Terrain : StaticBody3D
 		noise = new FastNoiseLite(); 
 		noise.SetSeed((int)GD.Randi());
 		noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
-		noise.SetFrequency(0.02f);
+		noise.SetFrequency(NOISE_SCALE);
 
 		GD.Print("Generated Noise Texture");
 	}
 
+	private void loadChunk(Vector3I chunk){
+		if(!octree.Find(chunk,out var data)){
+			Chunk c = new Chunk();
+
+			GD.Print("loading chunk ",chunk);
+			st.Begin(Mesh.PrimitiveType.Triangles);
+			for (int x = 0; x < CHUNK_SIZE; ++x) { 
+				for (int y = 0; y < CHUNK_SIZE; ++y) { 
+					for (int z = 0; z < CHUNK_SIZE; ++z) { 
+						createMeshQuad(new Vector3I(x, y, z) + chunk * CHUNK_SIZE); 
+					}
+				}
+			}
+			c.mesh.Mesh =  st.Commit();
+			c.collision.Shape = c.mesh.Mesh.CreateTrimeshShape();
+
+			octree.Insert(chunk,c);
+			CallDeferred("add_child",c.mesh);
+			CallDeferred("add_child",c.collision);
+		}
+	}
+	private void UnloadChunk(Vector3I chunk) { 
+		if (octree.Remove(chunk, out var chunk_struct)) { 
+			chunk_struct.mesh.QueueFree();
+			chunk_struct.collision.QueueFree();
+		}
+	}
+
+	private float getSampleValue(Vector3 index){
+		float 	dist = index.DistanceTo(center), 
+				value = noise.GetNoise3Dv(index),
+				outer_sphere = dist - OUTER_RADIUS,
+				inner_sphere = dist - INNER_RADIUS;
+
+		float s = 1-(1/(1+TRANSITION_SMOOTHNESS*MathF.Exp(OUTER_RADIUS+TRANSITION_OFFSET-dist)));
+
+		float f = (1-s)*outer_sphere + s*value;
+
+		s = 1-(1/(1+TRANSITION_SMOOTHNESS*MathF.Exp(INNER_RADIUS-dist)));
+
+		return (1-s)*f + s*inner_sphere;
+	}
+	
+
+	public override void _Input(InputEvent @event){
+		if(Input.IsActionJustPressed("debug_action_1")) {
+			generateChunksAt(player.Position);
+			//loadChunk(new Vector3I(SIZE,SIZE,SIZE)/2);
+			//generateMesh();
+		}
+	}
 
 	// Called when the node enters the scene tree for the first time.
-	public override async void _Ready()
+	public override void _Ready()
 	{
-		
-
-		var mesh_instance = GetNode<MeshInstance3D>("MeshInstance3D");
-		var collision_shape = GetNode<CollisionShape3D>("CollisionShape3D");
+		Position = SIZE/2 * new Vector3I(-1,-1,-1);
 		center = 0.5f * new Vector3(SIZE,SIZE,SIZE);
 
-		st.Begin(Mesh.PrimitiveType.Triangles);
-		st.SetColor(Colors.Blue);
-		st.SetSmoothGroup(0);
-
-		await Task.Run(() => generateNoiseTexture());
-		await Task.Run(() => generateMesh());
-
-		var mesh = st.Commit();
-		mesh_instance.Mesh = mesh;
-
-		// Setting collision shap
-		var shape = new ConvexPolygonShape3D();
-
-		collision_shape.Shape = mesh.CreateTrimeshShape();
+		generateNoiseTexture();
 
 		// Setting layers
 		CollisionLayer = 	((uint)Utilities.collision_layers.Floor); 
-		CollisionMask = 	((uint)Utilities.collision_layers.Player) & 
-							((uint)Utilities.collision_layers.Object) & 
+		CollisionMask = 	((uint)Utilities.collision_layers.Player) &
+							((uint)Utilities.collision_layers.Object) &
 							((uint)Utilities.collision_layers.Entity);
-
-		
-
-		GD.Print("Finished Generating Terrain");
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -112,18 +161,26 @@ public partial class Terrain : StaticBody3D
 		DebugDraw3D.DrawBoxAb(Position,Position + new Vector3(SIZE,SIZE,SIZE),Vector3.Up,Godot.Color.Color8(255,255,0));
 	}
 
-	private float getSampleValue(Vector3 index){
-		float radius = (SIZE-5)/2;
-		float dist = index.DistanceTo(center);
-		return (dist < (radius))? noise.GetNoise3Dv(index): dist - radius; //index.DistanceTo(Vector3.Zero)-19.0f;
+	private async void generateChunksAt(Vector3 position) {
+		Vector3I start = (((Vector3I)position.Round()+ new Vector3I(SIZE,SIZE,SIZE)/2)-new Vector3I(LOAD_DIST,LOAD_DIST,LOAD_DIST)/2)/CHUNK_SIZE;
+
+		for (int x = -LOAD_DIST; x <= LOAD_DIST; ++x) {
+			for (int y = -LOAD_DIST; y <= LOAD_DIST; ++y) {
+				for (int z = -LOAD_DIST; z <= LOAD_DIST; ++z) {
+					Vector3I pos = (start + new Vector3I(x,y,z)); Chunk data;
+					if(!octree.Find(pos,out data)){
+						await Task.Run(() =>loadChunk(pos));
+					}
+				}
+			}
+		}
 	}
+	private async void generateMesh(){
 
-	private void generateMesh(){
-
-		for(int x = 0; x < SIZE; ++x){
-			for(int y = 0; y < SIZE; ++y){
-				for(int z = 0; z < SIZE; ++z){
-					createMeshQuad(new Vector3I(x,y,z));
+		for(int x = 0; x < SIZE/CHUNK_SIZE; ++x){
+			for(int y = 0; y < SIZE/CHUNK_SIZE; ++y){
+				for(int z = 0; z < SIZE/CHUNK_SIZE; ++z){
+					await Task.Run(()=>loadChunk(new Vector3I(x,y,z)));
 				}
 			}
 		}
