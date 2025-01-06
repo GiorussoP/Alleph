@@ -5,8 +5,6 @@ using System.Reflection;
 
 public partial class Entity : CharacterBody3D{
     protected Godot.Vector3 closest_ground;
-
-    private PhysicsDirectBodyState3D last_state;
     protected bool on_ground = true;
 
     protected Vector3 up_direction = Vector3.Up;

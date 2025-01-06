@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,7 +31,7 @@ public class Octree<T>
     }
 
     public void Insert(Vector3 position, T data)
-    {
+    {   
         Insert(position, data, root, 0);
     }
 
@@ -137,7 +138,7 @@ public class Octree<T>
         {
             node.Points.Remove(pointToRemove);
             data = pointToRemove.Data;
-            GD.Print($"Removed point: {position} with data: {data} at depth: {depth}");
+            //GD.Print($"Removed point: {position} with data: {data} at depth: {depth}");
             return true;
         }
 
@@ -157,12 +158,31 @@ public class Octree<T>
         var foundPoint = node.Points.Find(p => p.Position == position); 
         if (!foundPoint.Equals(default((Vector3, T)))) { 
             data = foundPoint.Data; 
-            GD.Print($"Found point: {position} with data: {data}"); 
-            return true; 
-        } 
+            //GD.Print($"Found point: {position} with data: {data}"); 
+            return true;
+        }
         if (node.Children[0] == null) 
             return false; 
         int index = GetChildIndex(node, position); 
         return Find(position, node.Children[index], out data); 
+    }
+
+    // Method to iterate through every element in the Octree 
+    public void Iterate(Action<Vector3, T> action) { 
+        Iterate(root, action); 
+    }
+    private void Iterate(OctreeNode node, Action<Vector3, T> action) { 
+        if (node == null) 
+            return; 
+        // Process each point in the node 
+        foreach (var point in node.Points) { 
+            action(point.Position, point.Data); 
+        } 
+        // Recursively process the children nodes 
+        foreach (var child in node.Children) { 
+            if (child != null) { 
+                Iterate(child, action); 
+            }
+        }
     }
 }

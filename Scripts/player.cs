@@ -89,7 +89,6 @@ public partial class Player : SpriteEntity {
 		}
 		else{
 			setPower(false);
-			
 		}
 		
 
@@ -262,7 +261,7 @@ public partial class Player : SpriteEntity {
 
 		
 
-        var query = PhysicsRayQueryParameters3D.Create(Position,Position + max_cam_dist*camera.Basis.Z.Normalized(),Utilities.floor_object_mask);
+        var query = PhysicsRayQueryParameters3D.Create(camera_target,camera_target + max_cam_dist*camera.Basis.Z.Normalized(),Utilities.floor_object_mask);
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
 
 		float new_dist = desired_camera_distance;
