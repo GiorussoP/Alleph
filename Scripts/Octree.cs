@@ -185,4 +185,22 @@ public class Octree<T>
             }
         }
     }
+
+    public void Replace(Vector3 position, T newData) { 
+        Replace(position, newData, root); 
+    } 
+    private bool Replace(Vector3 position, T newData, OctreeNode node) { 
+        if (node == null) 
+            return false; 
+        for (int i = 0; i < node.Points.Count; i++) { 
+            if (node.Points[i].Position == position) { 
+                node.Points[i] = (position, newData);
+                return true; 
+            }
+        }
+        if (node.Children[0] == null) 
+            return false; 
+        int index = GetChildIndex(node, position); 
+        return Replace(position, newData, node.Children[index]);
+    }
 }

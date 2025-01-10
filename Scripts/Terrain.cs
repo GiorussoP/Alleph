@@ -4,46 +4,53 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Threading;
 
 public partial class Terrain : StaticBody3D
 {
 	
 
-	private static readonly int SIZE = 1024, 
-								CHUNK_SIZE = 32, 
-								LOAD_DIST = 10, //Render distance, in chunks 
-								UNLOAD_BATCH_SIZE = 4;
-	private readonly float 			OUTER_RADIUS = 512,
-									INNER_RADIUS = 50,
-									TRANSITION_OFFSET = 5,
-									TRANSITION_SMOOTHNESS = 0.08f,	// Between 0 and 1
-									NOISE_SCALE = 0.01f;
+	private const int 	SIZE = 5096, 
+						CHUNK_SIZE = 32, // In units
+						LOAD_DIST = 10, //Render distance, in chunks
+						UNLOAD_BATCH_SIZE =  128;	//How many dead chunks are killed on a single frame
+	private readonly float 			OUTER_RADIUS = 2048,
+									INNER_RADIUS = 1024,
+									MOUNTAIN_SIZE = 200,
+									TRANSITION_STEEPNESS = 0.5f,
+									LOW_NOISE_SCALE = 0.005f,
+									HIGH_NOISE_SCALE = 0.01f;
 
-	[Export] public Node3D camera;
-	private FastNoiseLite noise;
+	private Camera3D camera;
+	[Export] private int seed = 0;
+	private FastNoiseLite high_noise,low_noise;
 	private Vector3 center, last_load = Vector3.Zero;
+
+	private Vector3I last_load_chunk = Vector3I.Zero;
 	private static int RELOAD_VALUE;
 	private bool generating = false;
 
-	List<Chunk> dead_chunks = new List<Chunk>();
-
-	private Octree<Chunk> octree = 	new Octree<Chunk>(new Aabb(-SIZE/2,-SIZE/2,-SIZE/2,new Vector3(SIZE,SIZE,SIZE)));
+	//List<Chunk> dead_chunks = new List<Chunk>();
+	private Octree<Chunk> loaded_chunks;
+	private List<Chunk> dead_chunks;
+	//private Octree<Chunk> octree = 	new Octree<Chunk>(new Aabb(-SIZE/2,-SIZE/2,-SIZE/2,new Vector3(SIZE,SIZE,SIZE)));
 
 	private enum LODlevel {
-		ultra = 1,
-		high = 2,
 		medium = 4,
-		low = 8
+		low = 16,
+		ultra_low = 32,
+
+		lowest = CHUNK_SIZE
 	}
 	private struct Chunk {
-		public bool active;
+		public Vector3I id;
 		public LODlevel lod;
 		public MeshInstance3D mesh;
 		public CollisionShape3D collision;
 
-		public Chunk(){
-			active = false;
-			lod = LODlevel.low;
+		public Chunk(Vector3I chunk_id, LODlevel chunk_lod){
+			id = chunk_id;
+			lod = chunk_lod;
 			mesh = new MeshInstance3D();
 			collision = new CollisionShape3D();
 		}
@@ -98,38 +105,25 @@ public partial class Terrain : StaticBody3D
 		new Vector3I[]{new Vector3I(0,1,0),new Vector3I(0,1,1)},
 	};
 
-	private void generateNoiseTexture() { 
-		noise = new FastNoiseLite(); 
-		noise.SetSeed(10);//(int)GD.Randi()
-		noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
-		noise.SetFrequency(NOISE_SCALE);
+	private void generateNoiseTextures(int seed) { 
+		low_noise = new FastNoiseLite(); 
+		low_noise.SetSeed(seed);//(int)GD.Randi()
+		low_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
+		low_noise.SetFrequency(LOW_NOISE_SCALE);
 
-		GD.Print("Generated Noise Texture");
+		high_noise = new FastNoiseLite(); 
+		high_noise.SetSeed(seed);//(int)GD.Randi()
+		high_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
+		high_noise.SetFrequency(HIGH_NOISE_SCALE);
+
+		GD.Print("Generated Noise Textures");
 	}
 
 	// Reloads a chunk that is inserted in the octree
-	private void loadChunk(Vector3I chunk,LODlevel detail){
-	
-
-		bool found = false;
-		if(!octree.Find(chunk, out Chunk c)){
-			c = new Chunk();
-		}
-		else {
-			if(c.lod == detail)
-				return;
-			found = true;
-			dead_chunks.Add(c);
-			c = new Chunk();
-		}
-
-
+	private void updateChunk(ref Chunk c){
 		// Generating chunk
-		int chunk_res = (int)detail, quad_count = 0;
+		int chunk_res = (int)c.lod, quad_count = 0;
 		SurfaceTool st = new SurfaceTool();
-
-
-		
 
 		st.Begin(Mesh.PrimitiveType.Triangles);
 
@@ -137,52 +131,64 @@ public partial class Terrain : StaticBody3D
 		material.VertexColorUseAsAlbedo = true;
 		st.SetMaterial(material);
 
+
+		int SKIT_STOP = CHUNK_SIZE - chunk_res;
+
+		int[] n_lods = {(int)calculateLOD(c.id + Vector3I.Right),(int)calculateLOD(c.id + Vector3I.Up),(int)calculateLOD(c.id + Vector3I.Back)};
+
 		for (int x = 0; x < CHUNK_SIZE; x+=chunk_res) {
 			for (int y = 0; y < CHUNK_SIZE; y+=chunk_res) { 
 				for (int z = 0; z < CHUNK_SIZE; z+=chunk_res) {
-					Vector3I pos = new Vector3I(x, y, z) + chunk * CHUNK_SIZE;
-					createMeshQuad(pos, ref st,chunk_res,ref quad_count);
+
+					Vector3I pos = c.id * CHUNK_SIZE + new Vector3I(x, y, z);
+
+					/*
+					if((x == SKIT_STOP)||(y == SKIT_STOP)||(z == SKIT_STOP))
+						createSeamlessSkirt(pos, ref st,chunk_res,n_lods,ref quad_count);
+					
+					else
+					*/
+						createMeshQuad(pos, ref st,chunk_res,ref quad_count);
+					
 				}
 			}
 		}
+		st.GenerateNormals();
 
 		// Inserting into scene if has geometry.
 		if(quad_count > 0){
-			c.lod = detail;
 			c.mesh.Mesh = st.Commit();
 			c.collision.Shape = c.mesh.Mesh.CreateTrimeshShape();
-			//UnloadChunk(ref c);
-
-			if(!found)
-				octree.Insert(chunk, c);
 
 			CallDeferred("add_child",c.mesh);
-			CallDeferred("add_child",c.collision);
+			if(c.lod <= LODlevel.medium)
+				CallDeferred("add_child",c.collision);
 
-			GD.Print("loaded chunk ",chunk);
+			//GD.Print("loaded chunk ",c.id,"lod ",c.lod);
 		}
 	}
-	private void UnloadChunk(Vector3I chunk) {
-		if(octree.Remove(chunk, out var data)){
-			//chunks_for_deletion.Add(data);
-			//data.mesh.QueueFree();
-			//data.collision.QueueFree();
-		};
-	}
+
 
 	private float getSampleValue(Vector3 index){
 		float 	dist = index.DistanceTo(center), 
-				value = noise.GetNoise3Dv(index),
-				outer_sphere = dist - OUTER_RADIUS,
-				inner_sphere = dist - INNER_RADIUS;
+				low_noise_value = low_noise.GetNoise3Dv(index),
+				high_noise_value = high_noise.GetNoise3Dv(index),
+				outer_sphere_value = dist - OUTER_RADIUS + MOUNTAIN_SIZE * low_noise_value,
+				inner_sphere = dist - INNER_RADIUS + MOUNTAIN_SIZE * high_noise_value;
 
 		//Blending outer sphere
-		float s = 1-(1/(1+TRANSITION_SMOOTHNESS*MathF.Exp(OUTER_RADIUS+TRANSITION_OFFSET-dist)));
-		float f = (1-s)*outer_sphere + s*value;
+		float 	f = blendFunction(inner_sphere,high_noise_value,INNER_RADIUS,TRANSITION_STEEPNESS,dist);
+				f = blendFunction(f,outer_sphere_value,OUTER_RADIUS-MOUNTAIN_SIZE/4,TRANSITION_STEEPNESS,dist);
+		return f;
+	}
+	
+	private float blendFunction(float f, float g, float transition_point,float transition_steepness,float x){
+		float s = getSigmoidValue(transition_point,transition_steepness,x);
+		return s*f + (1-s)*g;
+	}
 
-		//Blending inner sphere
-		s = 1-(1/(1+TRANSITION_SMOOTHNESS*MathF.Exp(INNER_RADIUS-dist)));
-		return (1-s)*f + s*inner_sphere;
+	private float getSigmoidValue(float transition_point,float transition_steepness,float x){
+		return 1/(1+MathF.Exp(transition_steepness*(x-transition_point)));
 	}
 	
 
@@ -190,15 +196,11 @@ public partial class Terrain : StaticBody3D
 		if(Input.IsActionJustPressed("debug_action_1")) {
 			
 
-			//Task.Run(() => generateMesh());
+			Task.Run(() => generateMesh());
 			//loadChunk(new Vector3I(SIZE,SIZE,SIZE)/2);
 			//generateMesh();
 		}
 		if(Input.IsActionJustPressed("debug_action_2")) {
-			var pos = getChunkAt(camera.Position);
-			if(octree.Remove(pos, out var c)){
-				UnloadChunk(pos);
-			};
 		
 			//Task.Run(() => generateMesh());
 			//loadChunk(new Vector3I(SIZE,SIZE,SIZE)/2);
@@ -209,10 +211,14 @@ public partial class Terrain : StaticBody3D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
+		
+		loaded_chunks = new Octree<Chunk>(new Aabb(float.MaxValue/2,-float.MaxValue/2,-float.MaxValue/2, new Vector3(float.MaxValue,float.MaxValue,float.MaxValue)));
+		dead_chunks = new List<Chunk>();
+		camera = GetViewport().GetCamera3D();
 		center = Position;
-		RELOAD_VALUE = CHUNK_SIZE * CHUNK_SIZE;
+		RELOAD_VALUE = (CHUNK_SIZE * CHUNK_SIZE)/4;
 
-		generateNoiseTexture();
+		generateNoiseTextures(seed);
 
 		// Setting layers
 		CollisionLayer = 	((uint)Utilities.collision_layers.Floor); 
@@ -220,162 +226,149 @@ public partial class Terrain : StaticBody3D
 							((uint)Utilities.collision_layers.Object) &
 							((uint)Utilities.collision_layers.Entity);
 	}
+	private void killDeadChunks(){
+		if(dead_chunks.Count > 0){
+			int n = dead_chunks.Count;//Math.Min(dead_chunks.Count,UNLOAD_BATCH_SIZE);
+			for(int i=0;i<n; ++i){
+				Chunk c = dead_chunks[i];
+
+				//GD.Print("Deleted chunk ", c.id);
+				c.mesh.CallDeferred("queue_free");
+				if(c.lod <= LODlevel.medium)
+					c.collision.CallDeferred("queue_free");
+			}
+			dead_chunks.RemoveRange(0,n);
+			GD.Print("killing dead chunks");
+		}
+	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta) {
 		if(!generating){
-			if(dead_chunks.Count >= UNLOAD_BATCH_SIZE){
-				GD.Print("Removing ",dead_chunks.Count," chunks");
-				for(int i = 0; i < UNLOAD_BATCH_SIZE; ++i){
-					dead_chunks[i].mesh.CallDeferred("queue_free");
-					dead_chunks[i].collision.CallDeferred("queue_free");
-				}
-				dead_chunks.RemoveRange(0,UNLOAD_BATCH_SIZE);
 
-				//Task.Run(() => deleteDeadChunks());
-			}
-			{
-				if((camera.Position - last_load).LengthSquared() > RELOAD_VALUE){
-					generating = true;
-					Vector3 pos = camera.Position, dir = camera.Basis.Z;
+			if((camera.Position - last_load).LengthSquared() > RELOAD_VALUE){
+				generating = true;
+				Vector3 pos = camera.Position, dir = camera.Basis.Z;
 
-					Task.Run(() => generateChunksAt(pos,dir));
-				}
+				Task.Run(() => generateChunksAt(pos,dir));
 			}
 		}
-
 		DebugDraw3D.DrawBoxAb(Position- new Vector3(SIZE,SIZE,SIZE)/2,Position + new Vector3(SIZE,SIZE,SIZE)/2,Vector3.Up,Godot.Color.Color8(255,255,0));
+		
 	}
 
 	private Vector3I getChunkAt(Vector3 position){
 		return (Vector3I)(position/CHUNK_SIZE).Floor();
 	}
 
-	private void deleteDeadChunks(){
-		
-	}
 
 	private async Task generateChunksAt(Vector3 position,Vector3 look_dir) {
-		Vector3I start = getChunkAt(position); last_load = position;
-		GD.Print("start:",start);
+		last_load_chunk = getChunkAt(position); last_load = position;
+		GD.Print("start:",last_load_chunk);
 
 		ConcurrentBag<Task> chunk_tasks = new ConcurrentBag<Task>();
 
 		//-new Vector3(LOAD_DIST,LOAD_DIST,LOAD_DIST)/2
 
-
-		
-
-		
-		
-
-		
 		// A * for chunk loading, the heuristic is the looking direction (first the forward ones)
-		Octree<bool> visited = new Octree<bool>(new Aabb(-SIZE/2,-SIZE/2,-SIZE/2,new Vector3(SIZE,SIZE,SIZE)));
-		visited.Insert(new Vector3(0,0,0),true);
+		Octree<bool> visited = new Octree<bool>(new Aabb(float.MaxValue/2,-float.MaxValue/2,-float.MaxValue/2, new Vector3(float.MaxValue,float.MaxValue,float.MaxValue)));
 		var queue = new PriorityQueue<Vector3I,float>();
-		queue.Enqueue(new Vector3I(0,0,0),0f); 
+
+
+
+		queue.Enqueue(last_load_chunk,0f);
+		visited.Insert(last_load_chunk,true);
+
 		while(queue.Count > 0) {
-			Vector3I id = queue.Dequeue();
-			//GD.Print("Dequeueing",id);
+			Vector3I chunk_id = queue.Dequeue();
+			LODlevel lod = calculateLOD(chunk_id,last_load_chunk);
 
-			LODlevel lod = LODlevel.low; float dist = id.Length()/(float)LOAD_DIST;
-		
-			/*
-			if(dist < 0.75)
-				if(dist < 0.5)
-					if(dist < 0.25)
-						lod = LODlevel.ultra;
-					else
-						lod = LODlevel.high;
-				else
-					lod = LODlevel.medium;
-			*/
+			if(loaded_chunks.Find(chunk_id,out Chunk c)){
+				if(c.lod != lod){
+					//dead_chunks.Add(c);
+					c.mesh.CallDeferred("queue_free");
+					if(c.lod <=LODlevel.medium)
+						c.collision.CallDeferred("queue_free");
+					
+					c = new Chunk(chunk_id,lod);
+					loaded_chunks.Replace(chunk_id,c);
+					chunk_tasks.Add(Task.Run(() => updateChunk(ref c)));
+				}
+			}
+			else{
+				c = new Chunk(chunk_id,lod);
+				loaded_chunks.Insert(chunk_id,c);
+				chunk_tasks.Add(Task.Run(() => updateChunk(ref c)));
+			}
 
-			chunk_tasks.Add(Task.Run(() =>loadChunk(start+id,lod)));
 
 			for(int i = -1;i <=1; ++i){
 				for(int j = -1; j <= 1; ++j){
 					for(int k = -1; k <= 1; ++k){
-
 						if(i==0 && j==0 && k == 0)
 							continue;
 
-						Vector3I neighbour = id + new Vector3I(i,j,k);
-						dist = neighbour.Length();
 
-						if(dist <=LOAD_DIST){
-							if(!visited.Find(neighbour, out var c)){
-								visited.Insert(neighbour, true);
+						Vector3I next = chunk_id + new Vector3I(i,j,k);
+						Vector3I relative_vector = next-last_load_chunk;
 
-								float heuristic = look_dir.Dot(neighbour);
-								queue.Enqueue(neighbour,dist+heuristic);
-							}
+						if(relative_vector.LengthSquared() <= LOAD_DIST * LOAD_DIST && !visited.Find(next,out var d)){
+							visited.Insert(next,true);
+							float heuristic = look_dir.Dot(relative_vector);
+							queue.Enqueue(next,relative_vector.LengthSquared()+heuristic);
 						}
 					}
 				}
 			}
-			//GD.Print("Q:",queue.Count);
 		}
 		await Task.WhenAll(chunk_tasks.ToArray());
 
-		// After chunk generation is complete, remove faraway chunks from the octree and mark them as dead.
-		List<Vector3> chunks_removed = new List<Vector3>();
-		octree.Iterate((chunk_pos, chunk) => { 
-			if((chunk_pos - start).LengthSquared() > LOAD_DIST * LOAD_DIST){
-				chunks_removed.Add(chunk_pos);
-			}
+		List<Vector3> far_chunks = new List<Vector3>();
+		loaded_chunks.Iterate((pos, c) => { 
+			if((pos - last_load_chunk).LengthSquared() > LOAD_DIST * LOAD_DIST)
+				far_chunks.Add(pos);
 		});
-		foreach(Vector3I chunk in chunks_removed){
-			if(octree.Remove(chunk, out Chunk c)){
-				dead_chunks.Add(c);
-			}
-			else GD.PrintErr("COULDNT REMOVE FROM OCTREE");
+		foreach(Vector3I id in far_chunks){
+			loaded_chunks.Remove(id,out Chunk c);
+			dead_chunks.Add(c);
 		}
-		GD.Print("Finished generating");
 		
+		GD.Print("Updated ",chunk_tasks.Count," chunks");
+		killDeadChunks();
+		GD.Print("Killed dead chunks");
 		generating = false;
-
-		/*
-		for (int x = -LOAD_DIST; x <= LOAD_DIST;++x) {
-			for (int y = -LOAD_DIST; y <= LOAD_DIST; ++y) {
-				for (int z = -LOAD_DIST; z <= LOAD_DIST; ++z) {
-					Vector3I pos = new Vector3I(x,y,z);
-					float dist = pos.Length()/LOAD_DIST;
-
-
-					LODlevel detail = LODlevel.low;
-					
-					
-					if(dist > 0.75){
-						detail = LODlevel.low;
-					}
-					else if(dist > 0.5){
-						detail = LODlevel.low;
-					}
-					else if(dist > 0.25){
-						detail = LODlevel.high;
-					}
-					else
-						detail = LODlevel.ultra;
-
-
-					
-				}
-			}
-		}
-
-		*/
 	}
-	private void generateMesh(){
 
-		for(int x = 0; x < SIZE/CHUNK_SIZE; ++x){
-			for(int y = 0; y < SIZE/CHUNK_SIZE; ++y){
-				for(int z = 0; z < SIZE/CHUNK_SIZE; ++z){
-				Task load_chunks = Task.Run(() => loadChunk(new Vector3I(x,y,z),LODlevel.low));
+	
+	private LODlevel calculateLOD(Vector3I chunk_id){
+		return calculateLOD(chunk_id,last_load_chunk);
+	}
+
+	private LODlevel calculateLOD(Vector3I chunk_id,Vector3I viewing_from){
+		float dist = (float)(chunk_id - viewing_from).LengthSquared()/(LOAD_DIST*LOAD_DIST);
+
+		if(dist <= 0.25){
+			return LODlevel.medium;
+		}
+		
+		return LODlevel.lowest;
+	}
+	private async Task generateMesh(){
+		int n = SIZE/CHUNK_SIZE;
+		float surface = OUTER_RADIUS/CHUNK_SIZE/2;
+		ConcurrentBag<Task> chunk_tasks = new ConcurrentBag<Task>();
+		for(int x = -n; x < n; ++x){
+			for(int y = -n; y < n; ++y){
+				for(int z = -n; z < n; ++z){
+					Vector3I chunk_id = new Vector3I(x,y,z);
+					if(chunk_id.DistanceTo((Vector3I)center) >= surface){
+						var c = new Chunk(chunk_id,LODlevel.lowest);
+						chunk_tasks.Add(Task.Run(() => updateChunk(ref c)));
+					}
 				}
 			}
 		}
+		await Task.WhenAll(chunk_tasks.ToArray());
 		GD.Print("Generated Mesh");
 	}
 	private void createMeshQuad(Vector3I pos,ref SurfaceTool st,int chunk_res,ref int quad_count){
@@ -395,19 +388,20 @@ public partial class Terrain : StaticBody3D
 		}
 	}
 
-	private void createSeamlessSkirt(Vector3I pos, ref SurfaceTool st, int highRes, int lowRes) { 
+	private void createSeamlessSkirt(Vector3I pos, ref SurfaceTool st, int chunk_lod,int[] n_lods, ref int quad_count) { 
 		for (uint i = 0; i < 3; ++i) { 
-			var dirHighRes = AXIS[i] * highRes; 
-			var dirLowRes = AXIS[i] * lowRes; 
+			/*
+			var dirHighRes = AXIS[i] * highRes;
+			var dirLowRes = AXIS[i] * lowRes;
 			float v1 = getSampleValue(pos); 
-			float v2 = getSampleValue(pos + dirHighRes); 
-			float v3 = getSampleValue(pos + dirLowRes); 
+			float v2 = getSampleValue(pos + dirHighRes);
 			if (v1 < 0 && v2 >= 0) { 
 				AddSkirtQuad(ref pos, i, ref st, highRes, lowRes); 
 			} 
 			else if (v1 >= 0 && v2 < 0) { 
 				AddRSkirtQuad(ref pos, i, ref st, highRes, lowRes); 
 			} 
+			*/
 		}
 	}
 
@@ -497,7 +491,7 @@ public partial class Terrain : StaticBody3D
 		Color surface_color = getColorValue(pos);
 
 		st.SetColor(surface_color);
-		st.SetNormal(surface_gradient);
+		//st.SetNormal(surface_gradient);
 		st.AddVertex(surface_pos);
 	}
 	private Color getColorValue(Vector3I pos){

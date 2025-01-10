@@ -18,6 +18,7 @@ texture_filter = 0
 
 [node name="Terrain" type="StaticBody3D"]
 script = ExtResource("1_rqx17")
+seed = null
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 material_override = SubResource("StandardMaterial3D_s20sh")

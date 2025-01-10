@@ -53,6 +53,9 @@ public partial class Player : SpriteEntity {
 
 		playAnimation("walk");
 		pauseAnimation(2);
+
+		Position = home;
+		camera.Position = Position;
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -178,8 +181,7 @@ public partial class Player : SpriteEntity {
 		}
 		else {
 			setPower(false);
-		}
-	
+		}	
 
 		if((Mathf.Abs(mx) > 0.2 || Mathf.Abs(my) > 0.2)){
 			move_vector = findMoveVector();

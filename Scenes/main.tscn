@@ -7,8 +7,9 @@
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
 background_mode = 1
-background_color = Color(0.376471, 0.752941, 0.913725, 1)
-ambient_light_color = Color(0.0941176, 0.262745, 0.32549, 1)
+background_color = Color(0.381326, 0.485533, 0.830343, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.380392, 0.486275, 0.831373, 1)
 ssao_radius = 16.0
 ssil_radius = 0.01
 ssil_intensity = 0.0
@@ -21,19 +22,18 @@ sdfgi_cascade0_distance = 0.1
 sdfgi_max_distance = 0.2
 sdfgi_energy = 5.0
 glow_normalized = true
-glow_intensity = 1.0
+glow_intensity = 0.02
 glow_strength = 0.86
 glow_bloom = 1.0
 glow_hdr_scale = 1.0
 glow_hdr_luminance_cap = 65.15
-fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.377537, 0.752183, 0.911798, 1)
+fog_light_color = Color(0.380392, 0.486275, 0.831373, 1)
 fog_sun_scatter = 1.0
 fog_density = 1.0
 fog_sky_affect = 0.0
 fog_depth_begin = 0.0
-fog_depth_end = 300.0
+fog_depth_end = 869.4
 volumetric_fog_density = 0.1
 volumetric_fog_albedo = Color(0.0941176, 0.262745, 0.32549, 1)
 adjustment_brightness = 0.3
@@ -62,8 +62,8 @@ script = ExtResource("3_2ldwu")
 environment = SubResource("Environment_dfe4v")
 camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
 
-[node name="Terrain" parent="." node_paths=PackedStringArray("camera") instance=ExtResource("5_ruohh")]
-camera = NodePath("../Camera3D")
+[node name="Terrain" parent="." instance=ExtResource("5_ruohh")]
+seed = 10
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 light_color = Color(0.916809, 0.601884, 0.465824, 1)
@@ -73,16 +73,14 @@ light_specular = 1.0
 distance_fade_enabled = true
 distance_fade_begin = 4000.0
 distance_fade_length = 50.0
-omni_range = 512.0
+omni_range = 4096.0
 omni_attenuation = 0.5
 
 [node name="Floor" parent="." instance=ExtResource("1_5nfce")]
-transform = Transform3D(0.192318, 0, 0, 0, 0.00950072, 0, 0, 0, 0.152475, 0, 512, 0)
+transform = Transform3D(0.192318, 0, 0, 0, 0.00950072, 0, 0, 0, 0.152475, 0, 2048, 0)
 
 [node name="Camera3D" type="Camera3D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("4_2s0vr")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 513, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.73936, 0, -3.52204)
 look_speed = 0.03
-max_cam_dist = 60.0
-home = Vector3i(0, 513, 0)
