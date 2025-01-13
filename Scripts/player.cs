@@ -118,12 +118,12 @@ public partial class Player : SpriteEntity {
 
 		// Camera position
 		if(true) {
-			camera_target = Utilities.vector3Lerp(camera_target,Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
+			camera_target = camera_target.Lerp(Position+ (0.2f*camera_distance+0.4f)*up_direction,0.5f);
 		}
 		else {
 			//camera_target += (Position-camera_target).Slide(up_direction);
 		}
-		camera.Position = Utilities.vector3Lerp(camera.Position, camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
+		camera.Position = camera.Position.Lerp(camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
 
 		if(debugging){
 			DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
@@ -263,7 +263,7 @@ public partial class Player : SpriteEntity {
 
 		
 
-        var query = PhysicsRayQueryParameters3D.Create(camera_target,camera_target + max_cam_dist*camera.Basis.Z.Normalized(),Utilities.floor_object_mask);
+        var query = PhysicsRayQueryParameters3D.Create(camera_target,camera_target + max_cam_dist*camera.Basis.Z.Normalized(),Util.floor_object_mask);
         var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
 
 		float new_dist = desired_camera_distance;
@@ -275,6 +275,5 @@ public partial class Player : SpriteEntity {
 		camera_distance = new_dist < desired_camera_distance ? new_dist : desired_camera_distance;
 
 		base._PhysicsProcess(delta);
-
     }
 }

@@ -21,7 +21,7 @@ public partial class Entity : CharacterBody3D{
     public override void _Ready() {
 	}
     public override void _PhysicsProcess(double delta) {
-        local_y_speed -= Environment.gravity_acceleration * (float)delta;
+        //local_y_speed -= Environment.gravity_acceleration * (float)delta;
         if(local_y_speed< -Environment.terminal_speed)
             local_y_speed = -Environment.terminal_speed;
 
@@ -73,7 +73,7 @@ public partial class Entity : CharacterBody3D{
                         if(dir.Dot(search_direction) < 0)
                             continue;
 
-                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,Utilities.floor_object_mask);
+                        var query = PhysicsRayQueryParameters3D.Create(search_position, search_position + dir.Normalized() * min_dist,Util.floor_object_mask);
                         result = spaceState.IntersectRay(query);
 
                         if(result.Count > 0){
