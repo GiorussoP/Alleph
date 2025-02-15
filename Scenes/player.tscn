@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://b4iye78af4ame"]
+[gd_scene load_steps=8 format=3 uid="uid://b4iye78af4ame"]
 
 [ext_resource type="Script" path="res://Scripts/Player.cs" id="1_5jhtv"]
 [ext_resource type="Texture2D" uid="uid://b20wsabugyoxv" path="res://Sprites/emeralda_teste.png" id="2_6k0fh"]
@@ -20,6 +20,11 @@ animations = [{
 "speed": 5.0
 }]
 
+[sub_resource type="SphereMesh" id="SphereMesh_fyunt"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_13moo"]
+albedo_color = Color(1, 0, 0, 1)
+
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 9
 collision_mask = 14
@@ -27,20 +32,13 @@ input_ray_pickable = false
 motion_mode = 1
 wall_min_slide_angle = 0.0
 script = ExtResource("1_5jhtv")
-speed = 60.0
-sprint_boost = -50.0
-max_cam_dist = 50.0
-min_cam_dist = 0.0
-jump_speed = 20.0
-home = Vector3i(0, 2048, 0)
-power_gauge = 50.0
-power_gauge_limit = 50.0
 sprite_sheet = ExtResource("2_6k0fh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("SphereShape3D_0r1nl")
 
 [node name="AnimatedSprite3D" type="AnimatedSprite3D" parent="."]
+visible = false
 gi_mode = 2
 pixel_size = 0.025
 shaded = true
@@ -50,5 +48,11 @@ texture_filter = 0
 sprite_frames = SubResource("SpriteFrames_ufp2g")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
+visible = false
 light_color = Color(0, 1, 1, 1)
 omni_range = 1.0
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_fyunt")
+skeleton = NodePath("../CollisionShape3D")
+surface_material_override/0 = SubResource("StandardMaterial3D_13moo")

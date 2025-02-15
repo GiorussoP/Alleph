@@ -5,7 +5,7 @@ using System.Reflection;
 
 public partial class Entity : CharacterBody3D{
     protected Godot.Vector3 closest_ground;
-    protected bool on_ground = true;
+    protected bool on_ground = false;
 
     protected Vector3 up_direction = Vector3.Up;
 
@@ -21,7 +21,7 @@ public partial class Entity : CharacterBody3D{
     public override void _Ready() {
 	}
     public override void _PhysicsProcess(double delta) {
-        //local_y_speed -= Environment.gravity_acceleration * (float)delta;
+        local_y_speed -= Environment.gravity_acceleration * (float)delta;
         if(local_y_speed< -Environment.terminal_speed)
             local_y_speed = -Environment.terminal_speed;
 

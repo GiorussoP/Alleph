@@ -6,60 +6,36 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Threading;
 
+
 public partial class Terrain : StaticBody3D
 {
+	static private Camera3D camera;
+	static Vector3 last_load = Vector3.Zero;
+	static private bool busy = false;
+	private readonly object lock_obj = new object();
+	private HashSet<ChunkOctree.OctreeNode> loaded_chunks;
+	private List<ChunkOctree.OctreeNode> pending_chunks, dead_chunks;
+
+	static private readonly int 	
 	
-
-	private const int 	SIZE = 5096,
-	
-						INITIAL_CHUNK_SIZE = 120, // In units
-						CHUNK_DETAIL = 15,	//How many vertices should a chunk have in each direction
-						N_LEVELS = 3,
-						RELOAD_VALUE = INITIAL_CHUNK_SIZE/2,
-
-
-
-						LOAD_DIST = 64, //Render distance, in chunks
-						CHUNK_BATCH_SIZE =  4,		//How many chunks are updated on a single frame
-						COLLISION_BATCH_SIZE = 1;
-	private readonly float 			OUTER_RADIUS = 2048,
+						CHUNK_RES = 8,	// The chunk resolution
+						RELOAD_VALUE = 32,	// How far from last load to reload
+						UPDATE_BATCH_SIZE = 32,	//How many chunks are updated on a single frame
+						GENERATE_BATCH_SIZE = 4;	//How many chunks are generated at the same time 
+	private readonly int
+									SIZE = 4096,
+									OUTER_RADIUS = 2000,
 									INNER_RADIUS = 1024,
-									MOUNTAIN_SIZE = 200,
+									MOUNTAIN_SIZE = 100;
+	private readonly float
 									TRANSITION_STEEPNESS = 0.2f,
 									LOW_NOISE_SCALE = 0.005f,
-									HIGH_NOISE_SCALE = 0.01f;
-	/*
+									HIGH_NOISE_SCALE = 0.1f;
 
-	
-	*/
-
-	private Camera3D camera;
+	private Vector3 center;
 	[Export] private int seed = 0;
 	private FastNoiseLite high_noise,low_noise;
-	private Vector3 center, last_load = Vector3.Zero;
-	private bool busy = false;
 
-
-	private List<Chunk> pending_chunks, loaded_chunks, collision_chunks, dead_chunks;
-
-	private struct Chunk {
-		public Vector3I position;
-		public int size;
-		public MeshInstance3D mesh;
-		public CollisionShape3D collision;
-
-		public Chunk(Vector3I pos, int chunk_size){
-			position = pos;
-			size = chunk_size;
-			mesh = new MeshInstance3D();
-			collision = new CollisionShape3D();
-		}
-	}
-	private static readonly Vector3I[] AXIS = {
-		Vector3I.Right,
-		Vector3I.Up,
-		Vector3I.Back
-	};
 	private static readonly Vector3I[][] QUAD_POINTS = new Vector3I[][] {
 		//x axis
 		new Vector3I[] {
@@ -118,60 +94,6 @@ public partial class Terrain : StaticBody3D
 
 		GD.Print("Generated Noise Textures");
 	}
-/*
-	// Reloads a chunk that is inserted in the octree
-	private void updateChunk(ref Chunk c){
-		// busy chunk
-		int chunk_res = (int)c.lod, quad_count = 0;
-		SurfaceTool st = new SurfaceTool();
-
-		st.Begin(Mesh.PrimitiveType.Triangles);
-
-		var material = new StandardMaterial3D();
-		material.VertexColorUseAsAlbedo = true;
-		st.SetMaterial(material);
-
-
-		int SKIT_STOP = INITIAL_CHUNK_SIZE - chunk_res;
-
-		int[] n_lods = {(int)calculateLOD(c.id + Vector3I.Right),(int)calculateLOD(c.id + Vector3I.Up),(int)calculateLOD(c.id + Vector3I.Back)};
-
-		for (int x = 0; x < INITIAL_CHUNK_SIZE; x+=chunk_res) {
-			for (int y = 0; y < INITIAL_CHUNK_SIZE; y+=chunk_res) { 
-				for (int z = 0; z < INITIAL_CHUNK_SIZE; z+=chunk_res) {
-
-					Vector3I pos = c.id * INITIAL_CHUNK_SIZE + new Vector3I(x, y, z);
-
-					/*
-					if((x == SKIT_STOP)||(y == SKIT_STOP)||(z == SKIT_STOP))
-						createSeamlessSkirt(pos, ref st,chunk_res,n_lods,ref quad_count);
-					
-					else
-			
-					createMeshQuad(pos, ref st,chunk_res,ref quad_count);
-					
-				}
-			}
-		}
-		st.GenerateNormals();
-
-		// Inserting into scene if has geometry.
-		if(quad_count > 0){
-			c.mesh.Mesh = st.Commit();
-			c.mesh.LodBias = 0.01f;
-			c.collision.Shape = c.mesh.Mesh.CreateTrimeshShape();
-
-			CallDeferred("add_child",c.mesh);
-			if(c.lod <= LODlevel.medium)
-				CallDeferred("add_child",c.collision);
-
-			//GD.Print("loaded chunk ",c.id,"lod ",c.lod);
-		}
-	
-	}
-	*/
-
-
 
 	private float getSampleValue(Vector3 index){
 		float 	dist = index.DistanceTo(center), 
@@ -189,130 +111,153 @@ public partial class Terrain : StaticBody3D
 
 	public override void _Input(InputEvent @event){
 		if(Input.IsActionJustPressed("debug_action_1")) {
-			
-			CollisionLayer = (uint)Util.collision_layers.Floor;
-			CollisionMask = (uint)Util.collision_layers.Player;
-			
-
-			//loadChunk(new Vector3I(SIZE,SIZE,SIZE)/2);
-			//generateMesh();
+			if(!busy){
+				busy = true;
+				last_load = camera.Position;
+				Vector3 pos = Position;
+				Task.Run(() => reloadChunks(pos,last_load));
+			}
 		}
 		if(Input.IsActionJustPressed("debug_action_2")) {
-			CollisionLayer = 0;
-			CollisionMask = 0;
+			foreach(var chunk in loaded_chunks){
+				if(chunk.mesh != null)
+					chunk.mesh.CreateConvexCollision();
+				//dead_chunks.Add(chunk);
+			}
+			//loaded_chunks.Clear();
+			//updateChunkBatch();
 		}
 	}
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
+		Position = Vector3.Zero;
+
+		loaded_chunks = new HashSet<ChunkOctree.OctreeNode>();
+		pending_chunks = new List<ChunkOctree.OctreeNode>();
+		dead_chunks= new List<ChunkOctree.OctreeNode>();
+
 		GetViewport().DebugDraw = Viewport.DebugDrawEnum.Wireframe;
-
-		loaded_chunks = new List<Chunk>();//new Octree<Chunk>(new Aabb(float.MaxValue/2,-float.MaxValue/2,-float.MaxValue/2, new Vector3(float.MaxValue,float.MaxValue,float.MaxValue)));
-		dead_chunks = new List<Chunk>();
-		pending_chunks = new List<Chunk>();
-		collision_chunks = new List<Chunk>();
-
 		camera = GetViewport().GetCamera3D();
+
+
 		center = Position;
 		last_load = camera.Position;
-
-
-		
-		//CallDeferred("add_child",c.mesh);
-		//CallDeferred("add_child",c.collision);
 
 		generateNoiseTextures(seed);
 
 		// Setting layers
-
-
-		CollisionLayer = 0;
-		CollisionMask = 0;
-		//CollisionLayer = 	0;//((uint)Util.collision_layers.Floor);
-		//CollisionMask = 	0;//((uint)Util.collision_layers.Player) &((uint)Util.collision_layers.Object) & ((uint)Util.collision_layers.Entity);
+		CollisionLayer = (int)Util.collision_layers.Floor;
+		CollisionMask = (int)Util.collision_layers.Player; //| Util.collision_layers.Raycast | Util.collision_layers.Object | Util.collision_layers.Entity);
 	}
 
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
 
-	private Vector3I getChunkAt(Vector3 position){
-		return (Vector3I)(position/INITIAL_CHUNK_SIZE).Floor() * INITIAL_CHUNK_SIZE;
-	}
-	public override void _Process(double delta) {
-
-		//GD.Print("Frame delay: ",delta);
-		if(!busy){
-			if(pending_chunks.Count > 0){
-				busy = true;
-				//updateChunkBatch();
-				Task.Run(() => updateChunkBatch());
-			}
-
-			/*
-			else if(collision_chunks.Count > 0){
-				busy = true;
-
-				Task.Run(() => updateCollisionBatch());
-			}
-			*/
+	public async Task reloadChunks(Vector3 terrain_position, Vector3 cam_pos){
+		SemaphoreSlim semaphore = new SemaphoreSlim(GENERATE_BATCH_SIZE);
+		ConcurrentBag<Task> chunk_tasks = new ConcurrentBag<Task>();
+		lock(lock_obj){
+			// Find the chunks to generate and erase
+			GD.Print("Generating");
+			ChunkOctree tree = new ChunkOctree((Vector3I)terrain_position- new Vector3I(SIZE,SIZE,SIZE)/2,SIZE);
+			tree.Insert(cam_pos);
+			var leaf_nodes = tree.getLeafNodes();
+			GD.Print("FOUND LEAF NODES");
+		
+			
 	
+			// Chunks that need to be deleted
+			var dead = new HashSet<ChunkOctree.OctreeNode>(loaded_chunks);
+			dead.ExceptWith(leaf_nodes);
+			dead_chunks = dead.ToList();
+
+			// Chunks that need to be generated
+			var pending = new HashSet<ChunkOctree.OctreeNode>(leaf_nodes);
+			pending.ExceptWith(loaded_chunks);
+			pending_chunks = pending.ToList();
+
+			foreach (var chunk in leaf_nodes){
+				if(loaded_chunks.Contains(chunk)){
+					var found = loaded_chunks.FirstOrDefault(obj => obj.Equals(chunk));
+					chunk.mesh = found.mesh;
+				}
+				else
+					// Start generation
+					// Start generation with semaphore
+					chunk_tasks.Add(Task.Run(async () =>
+					{
+						await semaphore.WaitAsync();
+						try {
+							await generateChunk(chunk);
+						}
+						finally
+						{
+							semaphore.Release();
+						}
+					}));
+					//chunk_tasks.Add(Task.Run(() =>  generateChunk(chunk)));
+			}
+
+			loaded_chunks = leaf_nodes;
+		}
+		GD.Print("AWAITING");
+		await Task.WhenAll(chunk_tasks);
+		GD.Print("FINISHED");
+		busy = false;
+	}
+
+	public override void _Process(double delta) {
+	
+		if(!busy){
+			
+			if(dead_chunks.Count > 0 || pending_chunks.Count > 0){
+				busy = true;
+				updateChunkBatch();
+			}
 			else if((camera.Position - last_load).LengthSquared() > RELOAD_VALUE * RELOAD_VALUE){
 				busy = true;
-				Vector3 pos = camera.Position;
-
-				Task.Run(() => generateChunksAt(pos));
+				
+				last_load = camera.Position;
+				Vector3 pos = Position;
+				Task.Run(() => reloadChunks(pos,last_load));
+			}
+			else {
+				foreach(var chunk in loaded_chunks){
+					int amnt = (int)(chunk.width/(SIZE/2) * 255f);
+					DebugDraw3D.DrawAabbAb(chunk.position,chunk.position+new Vector3(chunk.width,chunk.width,chunk.width),Godot.Color.Color8((byte)amnt,(byte)(255-amnt),0));
+				}
 			}
 		}
-		DebugDraw3D.DrawBoxAb(Position- new Vector3(SIZE,SIZE,SIZE)/2,Position + new Vector3(SIZE,SIZE,SIZE)/2,Vector3.Up,Godot.Color.Color8(255,255,0));
 	}
-
 
 	private void updateChunkBatch(){
-		
 
-		int n = Math.Min(pending_chunks.Count,CHUNK_BATCH_SIZE);
-		for(int i = 0; i < n; ++i){
 
-			CallDeferred("add_child",pending_chunks[i].mesh);
-			if(pending_chunks[i].size == INITIAL_CHUNK_SIZE){
-				CallDeferred("add_child",pending_chunks[i].collision);
-				//collision_chunks.Add(pending_chunks[i]);
+		int n = Math.Min(dead_chunks.Count,UPDATE_BATCH_SIZE);
+		GD.Print("KILLING ",n);
+		foreach (var chunk in dead_chunks.Take(n)){
+			if(chunk.mesh != null){
+				chunk.mesh.CallThreadSafe("queue_free");
+				chunk.mesh = null;
 			}
-			loaded_chunks.Add(pending_chunks[i]);
-		}
-		pending_chunks.RemoveRange(0,n);
-		GD.Print("Loaded ",n);
-
-		n = Math.Min(dead_chunks.Count,CHUNK_BATCH_SIZE);
-		for(int i = 0; i < n; ++i){
-
-
-			dead_chunks[i].mesh.CallDeferred("queue_free");
-			if(dead_chunks[i].size == INITIAL_CHUNK_SIZE){
-				dead_chunks[i].collision.SetDeferred("disabled",true);
-				dead_chunks[i].collision.CallDeferred("queue_free");
-			}
-				
 		}
 		dead_chunks.RemoveRange(0,n);
-		GD.Print("Killed ",n);
 
-		
-
-		busy = false;
-	}
-
-	private void updateCollisionBatch(){
-		int n = Math.Min(collision_chunks.Count,COLLISION_BATCH_SIZE);
-		for(int i = 0; i < n; ++i){
-			collision_chunks[i].collision.SetDeferred("disabled",false);//.collision.Disabled = false;//CallDeferred("Disabled",false);
+		n = Math.Min(pending_chunks.Count,UPDATE_BATCH_SIZE);
+		GD.Print("LOADING ",n);
+		foreach (var chunk in pending_chunks.Take(n)){
+			if(chunk.mesh != null){
+				CallThreadSafe("add_child",chunk.mesh);
+				//chunk.mesh.CreateConvexCollision();
+			}
 		}
-		collision_chunks.RemoveRange(0,n);
-		GD.Print("Collision enabled ",n);
+		pending_chunks.RemoveRange(0,n);
 		busy = false;
+		//GD.Print(loaded_chunks.Count," LOADED");
 	}
-	private void generateChunk(ref Chunk c){
-		int chunk_res = c.size/CHUNK_DETAIL;
+
+	private async Task generateChunk(ChunkOctree.OctreeNode c){
+		int chunk_res = (int)c.width/CHUNK_RES;
 		int quad_count = 0;
 
 		SurfaceTool st = new SurfaceTool();
@@ -323,11 +268,11 @@ public partial class Terrain : StaticBody3D
 		st.SetMaterial(material);
 
 
-		for (int x = 0; x < c.size; x+=chunk_res) {
-			for (int y = 0; y < c.size; y+=chunk_res) {
-				for (int z = 0; z < c.size; z+=chunk_res) {
+		for (int x = 0; x < c.width; x+=chunk_res) {
+			for (int y = 0; y < c.width; y+=chunk_res) {
+				for (int z = 0; z < c.width; z+=chunk_res) {
 
-					Vector3I pos =  c.position + new Vector3I(x, y, z);
+					Vector3I pos =  (Vector3I)c.position + new Vector3I(x, y, z);
 					//GD.Print("i");
 					createMeshQuad(pos, ref st,chunk_res,ref quad_count);
 				}
@@ -335,91 +280,14 @@ public partial class Terrain : StaticBody3D
 		}
 		st.GenerateNormals();
 		if(quad_count > 0){
-			c.mesh.Mesh = st.Commit();
-			c.collision.Disabled = true;
-			if(c.size == INITIAL_CHUNK_SIZE)
-				c.collision.Shape = c.mesh.Mesh.CreateTrimeshShape();
-
-			//GD.Print("generated chunk: ",c.position,", size: ", c.size);
+			c.mesh = new MeshInstance3D();
+			c.mesh.CallThreadSafe("set_mesh",st.Commit());
 		}
 	}
-	private async void generateChunksAt(Vector3 position) {
-		GD.Print("Generating");
-		last_load = position;
-		//Cleaning octree
 
-		dead_chunks = loaded_chunks;
-		loaded_chunks = new List<Chunk>();//new Octree<Chunk>(new Aabb(float.MaxValue/2,-float.MaxValue/2,-float.MaxValue/2, new Vector3(float.MaxValue,float.MaxValue,float.MaxValue)));
-		ConcurrentBag<Task> chunk_tasks = new ConcurrentBag<Task>();
-
-
-		int chunk_size = INITIAL_CHUNK_SIZE;
-		Vector3I start_pos = getChunkAt(position);
-
-		Chunk c = new Chunk(start_pos,chunk_size);
-		pending_chunks.Add(c);
-		chunk_tasks.Add(Task.Run(()=>generateChunk(ref c)));
-		
-
-
-		int last_chunk_size = 0;
-		Vector3I last_offset = Vector3I.Zero;
-		for(int level = 0; level < N_LEVELS; ++level, chunk_size*=3){
-			int chunk_res = chunk_size/CHUNK_DETAIL;
-
-			Vector3I offset = last_offset +  new Vector3I(last_chunk_size,last_chunk_size,last_chunk_size);
-			
-			for(int i = -1;i <=1; ++i){
-				for(int j = -1; j <= 1; ++j){
-					for(int k = -1; k <= 1; ++k){
-						if(i==0 && j==0 && k == 0)
-							continue;
-
-						
-						// Pensar melhor essa matemática, mas tá quase!
-						Vector3I pos = start_pos +chunk_size*new Vector3I(i,j,k) - offset;
-						Chunk a = new Chunk(pos,chunk_size);
-						//generateChunk(ref a);
-						pending_chunks.Add(a);
-						chunk_tasks.Add(Task.Run(() => generateChunk(ref a)));
-					}
-				}
-			}
-
-			last_chunk_size = chunk_size;
-			last_offset = offset;
-		}
-		GD.Print("Awaiting");
-		await Task.WhenAll(chunk_tasks.ToArray());
-		GD.Print("Done");
-		busy = false;
-		//busy = false;
-	}
-
-	/*
-	private async Task generateMesh(){
-	
-
-		ConcurrentBag<Task> chunk_tasks  = new ConcurrentBag<Task>();
-
-		for(int x = -n; x < n; ++x){
-			for(int y = -n; y < n; ++y){
-				for(int z = -n; z < n; ++z){
-					Vector3I chunk_id = new Vector3I(x,y,z);
-					if(chunk_id.DistanceTo((Vector3I)center) >= surface){
-						var c = new Chunk(chunk_id,LODlevel.lowest);
-						chunk_tasks.Add(Task.Run(() => updateChunk(ref c)));
-					}
-				}
-			}
-		}
-		await Task.WhenAll(chunk_tasks.ToArray());
-		GD.Print("Generated Mesh");
-	}
-	*/
 	private void createMeshQuad(Vector3I pos,ref SurfaceTool st,int chunk_res,ref int quad_count){
 		for (uint i = 0; i < 3; ++i){
-			var dir = AXIS[i] * chunk_res;
+			var dir = Util.AXIS[i] * chunk_res;
 			float v1 = getSampleValue(pos);
 			float v2 = getSampleValue(pos+dir);
 			if (v1 < 0 && v2 >=0){
@@ -503,8 +371,8 @@ public partial class Terrain : StaticBody3D
 
 	private Vector3 getSurfaceGradient(Vector3I pos, float sample_value,int chunk_res){
 		return 
-			new Vector3(getSampleValue(pos + AXIS[0]*chunk_res) - sample_value,
-						getSampleValue(pos + AXIS[1]*chunk_res) - sample_value,
-						getSampleValue(pos + AXIS[2]*chunk_res) - sample_value).Normalized();
+			new Vector3(getSampleValue(pos + Util.AXIS[0]*chunk_res) - sample_value,
+						getSampleValue(pos + Util.AXIS[1]*chunk_res) - sample_value,
+						getSampleValue(pos + Util.AXIS[2]*chunk_res) - sample_value).Normalized();
 	}
 }

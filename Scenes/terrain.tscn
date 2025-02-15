@@ -17,10 +17,11 @@ heightmap_texture = ExtResource("3_ocgh4")
 texture_filter = 0
 
 [node name="Terrain" type="StaticBody3D"]
+collision_layer = 8
+collision_mask = 7
 script = ExtResource("1_rqx17")
 seed = null
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+layers = 8
 material_override = SubResource("StandardMaterial3D_s20sh")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]

@@ -8,33 +8,33 @@ using System.Linq;
 
 public partial class Player : SpriteEntity {
 	
-	[Export] float speed = 4;
-	[Export] float sprint_boost = 4;
-	[Export] float look_speed = 0.03f;
-	[Export] float max_cam_dist = 20;
-	[Export] float min_cam_dist = 0.1f;
-	[Export] float jump_speed = 5;
-	[Export] Vector3I home = new Vector3I(0,3,0);
+	static float speed = 4;
+	static float sprint_boost = 50;
+	static float look_speed = 0.03f;
+	static float max_cam_dist = 20;
+	static float min_cam_dist = 0.1f;
+	static float jump_speed = 5;
+	static Vector3I home = new Vector3I(0,2048,0);
 
-	[Export] float power_gauge,power_gauge_limit = 10;
+	static float power_gauge,power_gauge_limit = 10;
 
-	private OmniLight3D light;
+	static private OmniLight3D light;
 
 	/// <summary>
 	/// /DEBUG
-	bool debugging = false;
+	static bool debugging = false;
 	/// </summary>
 
-	private bool jumping = false, sprinting = false, falling = false, power = false;
-	private float	power_delay = 1f/15f, power_timer = 0;
+	static private bool jumping = false, sprinting = false, falling = false, power = false;
+	static private float	power_delay = 1f/15f, power_timer = 0;
 					
 
-	private Vector3 move_vector = Vector3.Zero;
+	static private Vector3 move_vector = Vector3.Zero;
 
-	private float camera_distance, desired_camera_distance;
-	private Vector3 camera_target;
+	static private float camera_distance, desired_camera_distance;
+	static private Vector3 camera_target;
 
-	private float mx,my, lx,ly, zy;
+	static private float mx,my, lx,ly, zy;
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready() {
@@ -60,6 +60,7 @@ public partial class Player : SpriteEntity {
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta){
+
 
 		// POWER
 		if(power){
@@ -126,10 +127,10 @@ public partial class Player : SpriteEntity {
 		camera.Position = camera.Position.Lerp(camera_target + camera_distance*camera.Transform.Basis.Z,0.5f);
 
 		if(debugging){
-			DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
-			DebugDraw3D.DrawLine(Position,Position + 3.0f* up_direction,Color.Color8(100,255,100));
-			DebugDraw3D.DrawSphere(Position,0.5f,Color.Color8(100,100,100));
-			DebugDraw3D.DrawArrow(Position,Position + 3.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
+			//DebugDraw3D.DrawLine(Position,closest_ground,Color.Color8(255,100,100));
+			//DebugDraw3D.DrawLine(Position,Position + 3.0f* up_direction,Color.Color8(100,255,100));
+			//DebugDraw3D.DrawSphere(Position,0.5f,Color.Color8(100,100,100));
+			//DebugDraw3D.DrawArrow(Position,Position + 3.0f*front_direction,Color.Color8(255,255,0), 0.1f, true);
 			//GD.Print(desired_camera_distance, camera_distance,camera);
 		}
 
