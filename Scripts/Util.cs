@@ -6,11 +6,21 @@ using System.Reflection.Metadata;
 
 
 
+[Tool]
 public static class Util {
 	public static readonly Vector3I[] AXIS = {
 		Vector3I.Right,
 		Vector3I.Up,
 		Vector3I.Back
+	};
+
+	public static readonly Vector3I[] DIRECTIONS = {
+		Vector3I.Right,
+		Vector3I.Left,
+		Vector3I.Up,
+		Vector3I.Down,
+		Vector3I.Back,
+		Vector3I.Forward
 	};
 	public enum collision_layers : uint {
 		Player = 1,

@@ -4,8 +4,9 @@ using System.Collections.Generic;
 
 
 
+[Tool]
 public class ChunkOctree {
-    static private readonly float SUBDIVISION_RANGE = 2f, MIN_CHUNK_SIZE = 32;
+    static private readonly float SUBDIVISION_RANGE = 2f, MIN_CHUNK_SIZE = 50;
     public class OctreeNode {
         public int width;
         public Vector3I position;
@@ -22,8 +23,8 @@ public class ChunkOctree {
             center = position + Vector3I.One * width/2;
             has_children = false;
             children = new OctreeNode[8];
-            mesh = null;
-            collision = null;
+            mesh = new MeshInstance3D();
+            collision = new CollisionShape3D();
         }
 
         public override bool Equals(object obj) {
@@ -92,5 +93,30 @@ public class ChunkOctree {
                 getLeafNodes(c,leaf_nodes);
             }
         }
+    }
+
+     public OctreeNode findNeighborChunk(OctreeNode currentChunk, Vector3I direction) {
+        Vector3I neighborPosition = currentChunk.position + direction * currentChunk.width;
+        return findChunkAtPosition(root, neighborPosition);
+    }
+
+    // Recursive method to find a chunk at a specific position
+    private OctreeNode findChunkAtPosition(OctreeNode node, Vector3I position) {
+        if (node == null) return null;
+        
+        var bb = new Aabb(node.position, new Vector3I(node.width,node.width,node.width));
+        if(bb.HasPoint(position)){
+            if(node.has_children){
+                OctreeNode n = null;
+                foreach(var child in node.children){
+                    var ret = findChunkAtPosition(child, position);
+                    if(ret != null) n = ret;
+                }
+                return n;
+            }
+            else return node;
+        }
+
+        return null;
     }
 }

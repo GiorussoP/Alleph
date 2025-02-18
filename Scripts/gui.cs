@@ -1,8 +1,8 @@
 using Godot;
 using System;
 
+[Tool]
 public partial class Gui : Node {
-
 	private bool fullscreen = DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen;
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready(){

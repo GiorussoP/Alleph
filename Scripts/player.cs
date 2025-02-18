@@ -14,7 +14,7 @@ public partial class Player : SpriteEntity {
 	static float max_cam_dist = 20;
 	static float min_cam_dist = 0.1f;
 	static float jump_speed = 5;
-	static Vector3I home = new Vector3I(0,2048,0);
+	static Vector3I home = new Vector3I(0,3101,0);
 
 	static float power_gauge,power_gauge_limit = 10;
 
