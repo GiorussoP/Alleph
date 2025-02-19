@@ -26,16 +26,16 @@ public partial class Terrain : StaticBody3D
 									SIZE = 6400,
 									OUTER_RADIUS = 3000,
 									INNER_RADIUS = 2000,
-									MOUNTAIN_SIZE = 150;
+									MOUNTAIN_SIZE = 100;
 	[Export] private float
-									TRANSITION_STEEPNESS = 0.2f,
-									LOW_NOISE_SCALE = 0.005f,
+									TRANSITION_STEEPNESS = 1.0f,
+									mountain_noise_SCALE = 0.005f,
 									CONTINENT_NOISE_SCALE = 0.001f,
-									HIGH_NOISE_SCALE = 0.01f;
+									cave_noise_SCALE = 0.01f;
 
 	private Vector3 center;
 	[Export] private int seed = 0;
-	private FastNoiseLite high_noise,low_noise, continent_noise;
+	private FastNoiseLite cave_noise,mountain_noise, continent_noise;
 
 	private static readonly Vector3I[][] QUAD_POINTS = new Vector3I[][] {
 		//x axis
@@ -83,15 +83,15 @@ public partial class Terrain : StaticBody3D
 	};
 
 	private void generateNoiseTextures(int seed) { 
-		low_noise = new FastNoiseLite(); 
-		low_noise.SetSeed(seed);//(int)GD.Randi()
-		low_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
-		low_noise.SetFrequency(LOW_NOISE_SCALE);
+		mountain_noise = new FastNoiseLite(); 
+		mountain_noise.SetSeed(seed);//(int)GD.Randi()
+		mountain_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
+		mountain_noise.SetFrequency(mountain_noise_SCALE);
 
-		high_noise = new FastNoiseLite(); 
-		high_noise.SetSeed(seed);//(int)GD.Randi()
-		high_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
-		high_noise.SetFrequency(HIGH_NOISE_SCALE);
+		cave_noise = new FastNoiseLite(); 
+		cave_noise.SetSeed(seed);//(int)GD.Randi()
+		cave_noise.SetNoiseType(FastNoiseLite.NoiseTypeEnum.Perlin); 
+		cave_noise.SetFrequency(cave_noise_SCALE);
 
 		continent_noise = new FastNoiseLite(); 
 		continent_noise.SetSeed(seed);//(int)GD.Randi()
@@ -104,14 +104,20 @@ public partial class Terrain : StaticBody3D
 	private float getSampleValue(Vector3 index){
 		float 	dist = index.DistanceTo(center),
 				continent_noise_value = continent_noise.GetNoise3Dv(index),
-				low_noise_value = low_noise.GetNoise3Dv(index),
-				high_noise_value = high_noise.GetNoise3Dv(index),
-				outer_sphere_value = dist - OUTER_RADIUS + MOUNTAIN_SIZE * low_noise_value + 2*MOUNTAIN_SIZE * continent_noise_value,
-				inner_sphere = dist - INNER_RADIUS + MOUNTAIN_SIZE * high_noise_value;
+				mountain_noise_value = mountain_noise.GetNoise3Dv(index),
+				cave_noise_value = cave_noise.GetNoise3Dv(index);
 
-		//Blending outer sphere
-		float 	f = Util.blendFunction(inner_sphere,high_noise_value,INNER_RADIUS,TRANSITION_STEEPNESS,dist);
-				f = Util.blendFunction(f,outer_sphere_value,OUTER_RADIUS-MOUNTAIN_SIZE/4,TRANSITION_STEEPNESS,dist);
+		float 	surface = dist - OUTER_RADIUS,
+				core = dist - INNER_RADIUS;
+
+		surface += MOUNTAIN_SIZE* 2*continent_noise_value;	// Adding continents
+		surface += MOUNTAIN_SIZE* mountain_noise_value;		// Adding mountains
+
+		core += MOUNTAIN_SIZE* cave_noise_value;	// Adding cave heightmap to core		
+
+		
+		float 	f = Util.blendFunction(core,cave_noise_value,INNER_RADIUS,TRANSITION_STEEPNESS,dist);		// Blending planet core with caves
+				f = Util.blendFunction(f,surface,OUTER_RADIUS - MOUNTAIN_SIZE/2,TRANSITION_STEEPNESS,dist);	// Blending caves with surface
 		return f;
 	}
 	
@@ -149,7 +155,7 @@ public partial class Terrain : StaticBody3D
 		}
 
 		center = Position;
-		last_load = load_anchor.Position;
+		last_load = load_anchor.GlobalPosition;
 
 		generateNoiseTextures(seed);
 
@@ -169,9 +175,7 @@ public partial class Terrain : StaticBody3D
 			tree.Insert(cam_pos);
 			var leaf_nodes = tree.getLeafNodes();
 			GD.Print("FOUND LEAF NODES");
-		
-			
-	
+
 			// Chunks that need to be deleted
 			var dead = new HashSet<ChunkOctree.OctreeNode>(loaded_chunks);
 			dead.ExceptWith(leaf_nodes);
@@ -220,10 +224,10 @@ public partial class Terrain : StaticBody3D
 				busy = true;
 				updateChunkBatch();
 			}
-			else if((load_anchor.Position - last_load).LengthSquared() > RELOAD_VALUE * RELOAD_VALUE){
+			else if((load_anchor.GlobalPosition - last_load).LengthSquared() > RELOAD_VALUE * RELOAD_VALUE){
 				busy = true;
 				
-				last_load = load_anchor.Position;
+				last_load = load_anchor.GlobalPosition;
 				Vector3 pos = Position;
 				Task.Run(() => reloadChunks(pos,last_load));
 			}
@@ -386,19 +390,30 @@ public partial class Terrain : StaticBody3D
 		st.AddVertex(surface_pos);
 	}
 	private Color getColorValue(Vector3I pos,Vector3 normal){
-		float 	ln = low_noise.GetNoise3Dv(pos),
-				hn = high_noise.GetNoise3Dv(pos),
+		float 	ln = mountain_noise.GetNoise3Dv(pos),
+				hn = cave_noise.GetNoise3Dv(pos),
 				dist = (float)pos.Length(),
 				dir = normal.Dot(((Vector3)pos).Normalized());
 
 
+		float 	half_radius = (float)OUTER_RADIUS/2f,
+				humidity = Math.Min(5*(Math.Abs((float)pos.Y) - half_radius) * (Math.Abs((float)pos.Y) - half_radius) / (half_radius * half_radius),1.0f);
+
+		//GD.Print(dryness);
+
 		Color basecolor;
-		if(dist > OUTER_RADIUS + MOUNTAIN_SIZE)
+		if(Math.Abs(pos.Y) > 0.95f*(float)OUTER_RADIUS||dist > OUTER_RADIUS + MOUNTAIN_SIZE)
+			// Snow and ice
 			basecolor = Colors.DarkSlateGray.Lerp(Colors.White,Math.Max(dir/2,0)).Lerp(Colors.DarkSlateBlue,Math.Max(0,-dir/2));
-		else if(dist > OUTER_RADIUS - MOUNTAIN_SIZE / 2)
-			basecolor =  Colors.DarkSlateGray.Lerp(Colors.DarkGreen.Lerp(Colors.SandyBrown,ln),Math.Max(0,dir/4));
+		else if(dist > OUTER_RADIUS+0.2f*MOUNTAIN_SIZE)
+			// Grass / Desert mountains
+			basecolor =  Colors.DarkSlateGray.Lerp(Colors.SandyBrown.Lerp(Colors.DarkGreen,humidity),Math.Max(0,dir/5f));
+		else if(dist > OUTER_RADIUS)
+			// Coastline/Beach
+			basecolor = Colors.DarkSlateGray.Lerp(Colors.SandyBrown,Math.Max(0,dir/5f));
 		else
-			basecolor = Colors.SaddleBrown.Lerp(Colors.DarkSlateGray,dist/OUTER_RADIUS) + Colors.DarkGray*dir/4;
+			// Underground
+			basecolor = Colors.DarkGray.Lerp(Colors.DarkSlateGray,dist/OUTER_RADIUS).Lerp(Colors.SaddleBrown,Math.Max(0,dir/5f));
 
 		return basecolor; //+ ln * Colors.Yellow - hn * Colors.Yellow;
 	}

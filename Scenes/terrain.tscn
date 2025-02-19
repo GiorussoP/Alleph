@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bvr7wmtxockjn"]
+[gd_scene load_steps=9 format=3 uid="uid://bvr7wmtxockjn"]
 
 [ext_resource type="Script" path="res://Scripts/Terrain.cs" id="1_rqx17"]
 [ext_resource type="Texture2D" uid="uid://c80q1saoici87" path="res://Textures/Concrete_019_BaseColor.jpg" id="2_2wnya"]
@@ -16,10 +16,28 @@ heightmap_scale = 0.01
 heightmap_texture = ExtResource("3_ocgh4")
 texture_filter = 0
 
+[sub_resource type="SphereMesh" id="SphereMesh_uuqpo"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kesog"]
+transparency = 4
+cull_mode = 2
+depth_draw_mode = 1
+albedo_color = Color(0.270588, 0.619608, 1, 0.980392)
+metallic_specular = 0.11
+roughness = 0.5
+
 [node name="Terrain" type="StaticBody3D"]
 collision_layer = 4
 script = ExtResource("1_rqx17")
+MOUNTAIN_SIZE = 150
 
 [node name="Land" type="MeshInstance3D" parent="."]
 layers = 8
 material_override = SubResource("StandardMaterial3D_s20sh")
+cast_shadow = 2
+
+[node name="Sea" type="MeshInstance3D" parent="."]
+transform = Transform3D(6050, 0, 0, 0, 6050, 0, 0, 0, 6050, 0, 0, 0)
+transparency = 0.5
+mesh = SubResource("SphereMesh_uuqpo")
+surface_material_override/0 = SubResource("StandardMaterial3D_kesog")

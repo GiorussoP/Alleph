@@ -1,15 +1,16 @@
-[gd_scene load_steps=9 format=3 uid="uid://eqpdjehkk0k5"]
+[gd_scene load_steps=8 format=3 uid="uid://eqpdjehkk0k5"]
 
 [ext_resource type="PackedScene" uid="uid://b3xlrgbd7ru5t" path="res://Scenes/floor.tscn" id="1_5nfce"]
 [ext_resource type="Script" path="res://Scripts/Gui.cs" id="3_2ldwu"]
 [ext_resource type="PackedScene" uid="uid://b4iye78af4ame" path="res://Scenes/player.tscn" id="4_2s0vr"]
+[ext_resource type="PackedScene" uid="uid://b0f0lne8258ta" path="res://Scenes/alleph_sm.tscn" id="5_r4lqm"]
 [ext_resource type="PackedScene" uid="uid://bvr7wmtxockjn" path="res://Scenes/terrain.tscn" id="5_ruohh"]
 
 [sub_resource type="Environment" id="Environment_dfe4v"]
 background_mode = 1
-background_color = Color(0.0377077, 0.116759, 0.301771, 1)
+background_color = Color(0.000336566, 0.00147853, 0.00854487, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.0608097, 0.426848, 0.676436, 1)
+ambient_light_color = Color(0.784947, 0.808452, 0.873658, 1)
 ssao_radius = 16.0
 ssil_radius = 0.01
 ssil_intensity = 0.0
@@ -21,45 +22,26 @@ sdfgi_min_cell_size = 0.02
 sdfgi_cascade0_distance = 1.28
 sdfgi_max_distance = 2.56
 sdfgi_energy = 5.0
+glow_enabled = true
 glow_normalized = true
-glow_intensity = 1.0
+glow_intensity = 0.15
 glow_bloom = 1.0
-glow_hdr_scale = 1.0
+glow_hdr_scale = 0.67
 glow_hdr_luminance_cap = 65.15
-fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.108966, 0.398397, 0.575054, 1)
+fog_light_color = Color(0.274061, 0.640803, 0.881222, 1)
 fog_sun_scatter = 1.0
-fog_density = 0.5
+fog_density = 1.0
 fog_sky_affect = 0.0
 fog_depth_begin = 0.0
-fog_depth_end = 846.5
+fog_depth_end = 2000.0
 volumetric_fog_density = 0.02
 volumetric_fog_albedo = Color(0.304139, 0.614532, 0.819544, 1)
 adjustment_brightness = 0.3
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_n6vo6"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wx4jb"]
-transparency = 1
-albedo_color = Color(0.156863, 0.392157, 1, 1)
-
-[sub_resource type="SphereMesh" id="SphereMesh_giy0g"]
-
 [node name="main" type="Node"]
-
-[node name="Sunlight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.5, 0.296198, -0.813797, 0, 0.939692, 0.34202, 0.866026, 0.17101, -0.469846, 0, 0, 0)
-layers = 0
-light_bake_mode = 1
-shadow_enabled = true
-shadow_bias = 0.81
-shadow_transmittance_bias = 1.0
-directional_shadow_split_1 = 0.016
-directional_shadow_split_2 = 0.064
-directional_shadow_split_3 = 0.256
-directional_shadow_max_distance = 1000.0
-directional_shadow_pancake_size = 1024.0
 
 [node name="Gui" type="Node" parent="."]
 script = ExtResource("3_2ldwu")
@@ -71,7 +53,6 @@ camera_attributes = SubResource("CameraAttributesPractical_n6vo6")
 [node name="Terrain" parent="." instance=ExtResource("5_ruohh")]
 editor_description = "Gera terreno com surfacenets
 "
-seed = 10
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 light_color = Color(0.916809, 0.601884, 0.465824, 1)
@@ -92,27 +73,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12898.1, 0, 1649.77)
 current = true
 fov = 90.0
 size = 0.001
-far = 10000.0
+far = 20000.0
 
 [node name="Player" parent="." instance=ExtResource("4_2s0vr")]
-transform = Transform3D(0.999969, 0.00787135, 0, -0.00787135, 0.999969, 0, 0, 0, 1, 271.426, -2387.6, -2002.25)
+transform = Transform3D(0.999969, 0.00787135, 0, -0.00787135, 0.999969, 0, 0, 0, 1, 2941.39, -367.471, -1103.05)
 
-[node name="Moonlight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.491876, 0.297785, 0.818158, 2.25338e-08, 0.939693, -0.34202, -0.870665, 0.168231, 0.462212, 365.278, 0, -3052.05)
-layers = 0
-light_color = Color(0.769404, 0.845132, 1, 1)
-light_bake_mode = 1
-shadow_enabled = true
-shadow_bias = 0.81
-shadow_transmittance_bias = 1.0
-directional_shadow_split_1 = 0.016
-directional_shadow_split_2 = 0.064
-directional_shadow_split_3 = 0.256
-directional_shadow_max_distance = 1000.0
-directional_shadow_pancake_size = 1024.0
-
-[node name="Sea" type="MeshInstance3D" parent="."]
-transform = Transform3D(6000, 0, 0, 0, 5999.94, 27.7507, 0, -27.7507, 5999.94, 0, 0, 0)
-material_override = SubResource("StandardMaterial3D_wx4jb")
-transparency = 1.0
-mesh = SubResource("SphereMesh_giy0g")
+[node name="Alleph_SM" parent="." instance=ExtResource("5_r4lqm")]
