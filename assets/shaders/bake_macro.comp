@@ -1,0 +1,50 @@
+#version 430 core
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+// FIX: Match the new GL_RGBA16F format from C++
+layout(rgba16f, binding = 0) writeonly uniform imageCube macroMap;
+
+// Bring in portable C++/GLSL noise & getMacroData()
+#include "sdf.glsl"
+
+vec3 getCubeDirFromUV(vec2 uv, int face) {
+    vec3 dir;
+    switch(face) {
+        case 0: dir = vec3( 1.0, -uv.y, -uv.x); break; // POSITIVE_X
+        case 1: dir = vec3(-1.0, -uv.y,  uv.x); break; // NEGATIVE_X
+        case 2: dir = vec3( uv.x,  1.0,  uv.y); break; // POSITIVE_Y
+        case 3: dir = vec3( uv.x, -1.0, -uv.y); break; // NEGATIVE_Y
+        case 4: dir = vec3( uv.x, -uv.y,  1.0); break; // POSITIVE_Z
+        case 5: dir = vec3(-uv.x, -uv.y, -1.0); break; // NEGATIVE_Z
+    }
+    return normalize(dir);
+}
+
+void main() {
+    ivec3 id = ivec3(gl_GlobalInvocationID);
+    float texSize = 2048.0; // Updated matching resolution
+
+    if (id.x >= int(texSize) || id.y >= int(texSize) || id.z >= 6) return;
+
+    // 4x Sub-Texel Super-Sampling
+    const vec2 subTexelOffsets[4] = vec2[](
+        vec2(-0.25, -0.25),
+        vec2( 0.25, -0.25),
+        vec2(-0.25,  0.25),
+        vec2( 0.25,  0.25)
+    );
+
+    vec3 accumMacroData = vec3(0.0);
+
+    for (int i = 0; i < 4; ++i) {
+        vec2 subTexel = vec2(id.xy) + 0.5 + subTexelOffsets[i];
+        vec2 uv = (subTexel / texSize) * 2.0 - 1.0;
+
+        vec3 dir = getCubeDirFromUV(uv, id.z);
+        accumMacroData += getMacroData(dir * 6000.0);
+    }
+
+    vec3 finalMacroData = accumMacroData * 0.25;
+
+    imageStore(macroMap, id, vec4(finalMacroData, 1.0));
+}
